@@ -1,0 +1,60 @@
+//
+//  Player.swift
+//  AiGoStop iOS
+//
+//  Created by Joey's Mac mini on 5/6/26.
+//
+
+final class Player {
+    let index: Int
+    var handCards: [Card] = []
+    var capturedCardTypeGroup: [[Card]] = [[],[],[],[]]  // pi, dan, yeol, gwang
+    var money: Int = 1000
+    var goCount: Int = 0
+    var charactorIndex: Int = 0
+    
+    // MARK: - 계산 프로퍼티
+    var piCount: Int {
+        capturedCardTypeGroup[CardType.pi.rawValue].count
+    }
+    
+    var danCount: Int {
+        capturedCardTypeGroup[CardType.dan.rawValue].count
+    }
+    
+    var animalCount: Int {
+        capturedCardTypeGroup[CardType.animal.rawValue].count
+    }
+    
+    var gwangCount: Int {
+        capturedCardTypeGroup[CardType.gwang.rawValue].count
+    }
+    
+    var choDanCount: Int {
+        capturedCardTypeGroup[CardType.dan.rawValue].count(where: { $0.isChoDan == true })
+    }
+    
+    var hongDanCount: Int {
+        capturedCardTypeGroup[CardType.dan.rawValue].count(where: { $0.isChoDan == true })
+    }
+    
+    var chungDanCount: Int {
+        capturedCardTypeGroup[CardType.dan.rawValue].count(where: { $0.isChungDan == true })
+    }
+    
+    var godoriCount: Int {
+        capturedCardTypeGroup[CardType.animal.rawValue].count(where: { $0.isGodori == true })
+    }
+    
+    init(index: Int) {
+        self.index = index
+    }
+    
+    func capture(card: Card) {
+        self.capturedCardTypeGroup[card.type.rawValue].append(card)
+    }
+    
+    func getCapturedCardIndexByType(card: Card) -> Int {
+        return self.capturedCardTypeGroup[card.type.rawValue].firstIndex{ c in c.id == card.id } ?? 0
+    }
+}
