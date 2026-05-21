@@ -18,12 +18,16 @@ class CardNode: SKSpriteNode {
     
     let card: Card
     var isFront: Bool
+    let frontImage: UIImage
     
     init(name: String, card: Card, cardSize: CGSize, isFront: Bool = false) {
         self.card = card
         self.isFront = isFront
         
-        let texture = SKTexture(image: isFront ? card.image : .hwatuBack)
+        let imageName = String(format: "hwatu_%02d_", card.month) + String(describing: card.type) + (card.bonusId.isEmpty ? "" : "_\(card.bonusId)")
+        print("bonus card imageName :\(imageName)  >>> \(card.bonusId) ")
+        self.frontImage = UIImage(named: imageName) ?? .hwatuBack
+        let texture = SKTexture(image: isFront ? frontImage : .hwatuBack)
         
         super.init(texture: texture, color: .clear, size: cardSize)
         
@@ -65,7 +69,7 @@ class CardNode: SKSpriteNode {
         
         if isFront != self.isFront {
             self.isFront = isFront
-            let texture = SKTexture(image: isFront ? card.image : .hwatuBack)
+            let texture = SKTexture(image: isFront ? self.frontImage : .hwatuBack)
             let setTexture = SKAction.setTexture(texture)
             sequnce.append(setTexture)
         }

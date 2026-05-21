@@ -9,14 +9,14 @@ import UIKit
 
 // month : 1 소나무(송학), 2 매화(매조), 3 벚꽃(사쿠라), 4 등나무(흑싸리), 5 난초, 6 모란, 7 홍싸리, 8 억새(공산), 9 국화(국진), 10 단풍, 11 오동나무(오동), 12 버드나무(비)
 
-enum CardType: Int {
-    case gwang // 광
-    case animal  // (10)끗
-    case dan    // 단(띠)
-    case pi     // 피
+enum CardType: Int, Codable {
+    case gwang = 0 // 광
+    case animal = 1  // (10)끗
+    case dan = 2    // 단(띠)
+    case pi = 3     // 피
 }
 
-struct Card: Identifiable, Equatable, Hashable {
+struct Card: Identifiable, Equatable, Hashable, Codable {
     let id = UUID()
     let month: Int
     let type: CardType
@@ -25,9 +25,9 @@ struct Card: Identifiable, Equatable, Hashable {
     let isHongDan: Bool
     let isChoDan: Bool
     let isDoublePi: Bool
-    let image: UIImage
+    let bonusId: String
     
-    init(month: Int, type: CardType, isGodori: Bool = false, isChungDan: Bool = false, isHongDan: Bool = false, isChoDan: Bool = false, isDoublePi: Bool = false, image: UIImage) {
+    init(month: Int, type: CardType, isGodori: Bool = false, isChungDan: Bool = false, isHongDan: Bool = false, isChoDan: Bool = false, isDoublePi: Bool = false, bonusId: String = "") {
         self.month = month
         self.type = type
         self.isGodori = isGodori
@@ -35,6 +35,6 @@ struct Card: Identifiable, Equatable, Hashable {
         self.isHongDan = isHongDan
         self.isChoDan = isChoDan
         self.isDoublePi = isDoublePi
-        self.image = image
+        self.bonusId = bonusId
     }
 }

@@ -14,12 +14,14 @@ struct MainContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
 
+    @StateObject private var gameData = GameData()
+    @State var showSavedAlert: Bool = false
+    
     func getGameScene(size: CGSize) -> SKScene {
-        let scene = GameScene(size: size)
+        let scene = GameScene(size: size, gameData: self.gameData)
         scene.scaleMode = .aspectFit
         return scene
     }
-
     
     var body: some View {
         ZStack {
@@ -30,8 +32,36 @@ struct MainContentView: View {
                     SpriteView(scene: self.getGameScene(size: geometry.size))
                         .frame(width: geometry.size.width, height: geometry.size.height)
                 }
-            }.edgesIgnoringSafeArea(.vertical)
-
+            }
+            .edgesIgnoringSafeArea(.vertical)
+            .onChange(of: gameData.gameStatus) {
+                print("change gameStatus: \(gameData.gameStatus)")
+            }
+            HStack {
+                Spacer()
+                VStack(alignment: .center, spacing: 20, content: {
+                    Button("start") {
+                        self.gameData.deckCards = DeckFactory().generateFullDeck()
+                        self.gameData.gameStatus = .start
+                    }
+                    Button("save") {
+                        if !self.gameData.deckCards.isEmpty, let encoded = try? JSONEncoder().encode(self.gameData.deckCards) {
+                                UserDefaults.standard.set(encoded, forKey: "deckCards")
+                            self.showSavedAlert = true
+                        }
+                    }
+                    Button("load") {
+                        if let data = UserDefaults.standard.data(forKey: "deckCards"), let deckCards = try? JSONDecoder().decode([Card].self, from: data) {
+                            self.gameData.deckCards = deckCards
+                            self.gameData.gameStatus = .start
+                        }
+                    }
+                })
+            }
+            .ignoresSafeArea(.all)
+            .alert("", isPresented: self.$showSavedAlert) {
+                Button("OK") { showSavedAlert = false}
+            }
         }
         
     }

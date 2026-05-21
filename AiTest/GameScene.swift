@@ -6,10 +6,13 @@
 //
 
 import SpriteKit
+import SwiftUI
+import Combine
 
 
+class GameScene: SKScene, ObservableObject {
 
-final class GameScene: SKScene {
+    var gameData: GameData
     
     static let playerNames = ["고니", "정마담", "고광렬", "짝귀", "평경장", "박무석", "아귀", "곽철용", "장동식", "함대길", "꼬장", "작은마담", "우사장", "송마담", "허미나", "영미", "도일출", "애꾸", "이상무", "물영감", "까치"]
     
@@ -17,7 +20,7 @@ final class GameScene: SKScene {
     private let deckZPosition: CGFloat = 1000
     
     private var winnerIndex = 0
-    private var players = [Player(index: 0), Player(index: 1), Player(index: 2)]
+    private var players: [Player] = []
     private var tableCardGroups: [[Card]] = []
     private var deckCards: [Card] = []
     
@@ -29,7 +32,14 @@ final class GameScene: SKScene {
     
     private let cardDuration: Double = 0.2
     
-
+    init(size: CGSize, gameData: GameData) {
+        self.gameData = gameData
+        super.init(size: size)
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     override func didMove(to view: SKView) {
         self.backgroundColor = .tableBG ?? .black
@@ -40,16 +50,37 @@ final class GameScene: SKScene {
             self.playerImageSize = CGSize(width: self.cardSize.height, height: self.cardSize.height)
             self.cardGap = self.cardSize.width / 10
             self.cardLayeredGap = self.cardSize.width / 5
+        }
+    }
+    
+    // 매 프레임마다 SwiftUI로부터 온 데이터를 감지하고 적용
+    override func update(_ currentTime: TimeInterval) {
+        /*
+        guard let box = movingBox else { return }
+        
+        // 1. SwiftUI에서 변경한 속도(boxSpeed)를 실시간으로 적용해 박스를 움직임
+        box.position.x += gameData.boxSpeed
+        if box.position.x > frame.width { box.position.x = 0 }
+        
+        // 2. SwiftUI에서 변경한 색상(boxColor)을 실시간으로 노드에 반영
+        // (UI적인 변환은 메인 스레드 안전을 위해 비동기 처리하는 것이 좋습니다)
+        DispatchQueue.main.async {
+            box.color = UIColor(self.gameData.boxColor)
+        }
+        */
+        //print("update gameStatus: \(gameData.gameStatus)")
+        if self.gameData.gameStatus == .start {
             self.startGame()
+            self.gameData.gameStatus = .wait
         }
     }
     
     private func startGame() {
-        self.deckCards = DeckFactory().generateFullDeck()
         self.removeAllChildren()
-        self.initDeckCardNode()
+        self.deckCards = self.gameData.deckCards
+        self.players = [Player(index: 0), Player(index: 1), Player(index: 2)]
         self.setPlayers()
-        
+        self.initDeckCardNode()
         self.tableCardGroups = [[], [], [], [], [], [], [], [], [], [], [], [], [], []]
         
         Task {
@@ -225,25 +256,26 @@ final class GameScene: SKScene {
         await self.moveDeckCardToPlayerHand(playerIndex: player.index, cardIndex: player.handCards.count)
     }
 
-    func getTableCardZPosition(groupIndex: Int, cardIndex: Int) -> Int {
+    func getTableCardZPosition(groupIndex: Int, cardIndexByGroup: Int) -> Int {
         // 왼쪽 테이블 카드가 zPiosition이 높아야 함
         // 14개 기준
         if groupIndex % 2 == 0 {
-            return (groupIndex + 1) * 10 + cardIndex
+            return (groupIndex + 1) * 10 + cardIndexByGroup
         }
         else {
-            return (20 - groupIndex) * 10 + cardIndex
+            return (20 - groupIndex) * 10 + cardIndexByGroup
         }
     }
     
     private func moveDeckCardToTable() async {
         guard let deckCardNode = childNode(withName: deckCards.last?.id.uuidString ?? "") as? CardNode else { return }
         let groupIndex = self.getTableCardGroupIndex(cardMonth: deckCardNode.card.month)
-        let cardIndex = self.tableCardGroups[groupIndex].count
-        let zPosition = self.getTableCardZPosition(groupIndex: groupIndex, cardIndex: cardIndex)
+        let cardIndexByGroup = self.tableCardGroups[groupIndex].count
+        let zPosition = self.getTableCardZPosition(groupIndex: groupIndex, cardIndexByGroup: cardIndexByGroup)
         let lastDeckCard = self.deckCards.removeLast()
         self.addTableCard(card: lastDeckCard)
-        deckCardNode.moveAndTurnCard(movePosition: self.getTableCardPosition(groupIndex: groupIndex, cardIndex: cardIndex), duration: cardDuration, isFront: true, zPosition: Int(zPosition),afterCardNodeScale: .large)
+        let movePosition = self.getTableCardPosition(groupIndex: groupIndex, cardIndexByGroup: cardIndexByGroup)
+        deckCardNode.moveAndTurnCard(movePosition: movePosition, duration: cardDuration, isFront: true, zPosition: Int(zPosition),afterCardNodeScale: .large)
         do { try await Task.sleep(for: .seconds(cardDuration))
         } catch { print("error: \(error)")}
     }
@@ -274,8 +306,8 @@ final class GameScene: SKScene {
     private func sortTableCardGroup(tableGroupIndex: Int) {
         for (i, card) in tableCardGroups[tableGroupIndex].enumerated() {
             guard let cardNode = childNode(withName: card.id.uuidString) as? CardNode else { continue }
-            let zPosition = self.getTableCardZPosition(groupIndex: tableGroupIndex, cardIndex: i)
-            let movePosition = self.getTableCardPosition(groupIndex: tableGroupIndex, cardIndex: i)
+            let zPosition = self.getTableCardZPosition(groupIndex: tableGroupIndex, cardIndexByGroup: i)
+            let movePosition = self.getTableCardPosition(groupIndex: tableGroupIndex, cardIndexByGroup: i)
             cardNode.moveAndTurnCard(movePosition: movePosition, isFront: true, zPosition: zPosition, movingUpScale: nil, afterCardNodeScale: .large)
         }
     }
@@ -292,9 +324,9 @@ final class GameScene: SKScene {
     
     private func movePlayerHandCardToTable(handCard: Card, handCardNode: CardNode) async {
         let groupIndex = self.getTableCardGroupIndex(cardMonth: handCard.month)
-        let cardIndex = self.tableCardGroups[groupIndex].count
+        let cardIndexByGroup = self.tableCardGroups[groupIndex].count
         self.addTableCard(card: handCard)
-        let movePosition = self.getTableCardPosition(groupIndex: groupIndex, cardIndex: cardIndex)
+        let movePosition = self.getTableCardPosition(groupIndex: groupIndex, cardIndexByGroup: cardIndexByGroup)
         handCardNode.moveAndTurnCard(movePosition: movePosition, duration: cardDuration, isFront: true, afterCardNodeScale: .large)
     }
     
@@ -444,11 +476,11 @@ final class GameScene: SKScene {
         }
     }
     
-    private func getTableCardPosition(groupIndex: Int, cardIndex: Int) -> CGPoint {
-        print("getTableCardPosition: \(groupIndex), \(cardIndex)")
+    private func getTableCardPosition(groupIndex: Int, cardIndexByGroup: Int) -> CGPoint {
+        //print("getTableCardPosition: \(groupIndex), \(cardIndexByGroup)")
         let centerX = size.width / 2
         let cardWidthWithGap = self.cardSize.width * CardNodeScale.large.rawValue + self.cardGap
-        let sp = CGFloat(cardIndex) * self.cardLayeredGap * CardNodeScale.large.rawValue
+        let sp = CGFloat(cardIndexByGroup) * self.cardLayeredGap * CardNodeScale.large.rawValue
         if groupIndex % 2 == 0 {
             return CGPoint(x:centerX - cardWidthWithGap / 2 - cardWidthWithGap * CGFloat(groupIndex / 2 + 1) + sp, y: self.size.height / 2 - sp)
         }
@@ -483,12 +515,13 @@ final class GameScene: SKScene {
     }
     
     private func getPlayerCapturedCardPosition(playerIndex: Int, cardIndexByType: Int, cardType: CardType) -> CGPoint {
+        print("cardIndexByType: \(cardIndexByType), cardType: \(cardType)")
         let cardHeightWithGap = self.cardSize.height + self.cardGap
         var startPosition: CGPoint = .zero // 좌측 하단이 시작점
         startPosition.x = (playerIndex == 1 ? self.size.width / 2 : 0.0) + self.playerImageSize.width + (self.cardGap * 2)
         startPosition.y = playerIndex == 0 ? self.cardGap : size.height - (cardSize.height / 2) - cardHeightWithGap * 3 - (self.cardGap * 2)
         var position: CGPoint = .zero
-        position.x = startPosition.x  + (cardSize.width / 2) + (cardSize.width / 2.5) * CGFloat(cardIndexByType) + ( cardType == .dan ? self.cardLayeredGap : 0)
+        position.x = startPosition.x  + (cardSize.width / 2) + (cardSize.width / 2.5) * CGFloat(cardIndexByType) + ( cardType == .dan ? self.size.width / 5 : 0)
         position.y = startPosition.y + (cardSize.height / 2) + cardHeightWithGap * (cardType == .gwang ? 2.0 : cardType == .pi ? 0.0 : 1.0)
         return position
     }
