@@ -15,10 +15,11 @@ struct MainContentView: View {
     @Query private var items: [Item]
 
     @StateObject private var gameData = GameData()
-    @State var showSavedAlert: Bool = false
+    @State var isShowAlert: Bool = false
+    @State var alertMessage: String? = nil
     
     func getGameScene(size: CGSize) -> SKScene {
-        let scene = GameScene(size: size, gameData: self.gameData)
+        let scene = GameScene(size: size, gameData: gameData)
         scene.scaleMode = .aspectFit
         return scene
     }
@@ -47,7 +48,8 @@ struct MainContentView: View {
                     Button("save") {
                         if !self.gameData.deckCards.isEmpty, let encoded = try? JSONEncoder().encode(self.gameData.deckCards) {
                                 UserDefaults.standard.set(encoded, forKey: "deckCards")
-                            self.showSavedAlert = true
+                            self.alertMessage = "save success"
+                            self.isShowAlert = true
                         }
                     }
                     Button("load") {
@@ -57,11 +59,18 @@ struct MainContentView: View {
                         }
                     }
                 })
+                .padding(.all, 10)
             }
             .ignoresSafeArea(.all)
-            .alert("", isPresented: self.$showSavedAlert) {
-                Button("OK") { showSavedAlert = false}
+            .alert(alertMessage ?? "", isPresented: self.$isShowAlert) {
+                Button("OK") { self.isShowAlert = false}
             }
+            .onChange(of: gameData.popupMessage, perform: { message in
+                if message != nil {
+                    self.alertMessage = message
+                    self.isShowAlert = true
+                }
+            })
         }
         
     }

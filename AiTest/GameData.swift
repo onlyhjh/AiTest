@@ -18,4 +18,5 @@ enum GameStatus {
 class GameData: ObservableObject {
     @Published var gameStatus: GameStatus = .wait
     @Published var deckCards: [Card] = []
+    @Published var popupMessage: String? = nil
 }
