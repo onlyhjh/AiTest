@@ -15,8 +15,11 @@ struct MainContentView: View {
     @Query private var items: [Item]
 
     @StateObject private var gameData = GameData()
-    @State var isShowAlert: Bool = false
+    @State var isPresentedAlert: Bool = false
+    @State var isPresentedCustomPopup = false
     @State var alertMessage: String? = nil
+    @State var popupType: String? = nil
+    @State var gameStatus:GameStatus = .wait
     
     func getGameScene(size: CGSize) -> SKScene {
         let scene = GameScene(size: size, gameData: gameData)
@@ -35,9 +38,6 @@ struct MainContentView: View {
                 }
             }
             .edgesIgnoringSafeArea(.vertical)
-            .onChange(of: gameData.gameStatus) {
-                print("change gameStatus: \(gameData.gameStatus)")
-            }
             HStack {
                 Spacer()
                 VStack(alignment: .center, spacing: 20, content: {
@@ -49,7 +49,7 @@ struct MainContentView: View {
                         if !self.gameData.deckCards.isEmpty, let encoded = try? JSONEncoder().encode(self.gameData.deckCards) {
                                 UserDefaults.standard.set(encoded, forKey: "deckCards")
                             self.alertMessage = "save success"
-                            self.isShowAlert = true
+                            self.isPresentedAlert = true
                         }
                     }
                     Button("load") {
@@ -62,17 +62,57 @@ struct MainContentView: View {
                 .padding(.all, 10)
             }
             .ignoresSafeArea(.all)
-            .alert(alertMessage ?? "", isPresented: self.$isShowAlert) {
-                Button("OK") { self.isShowAlert = false}
-            }
-            .onChange(of: gameData.popupMessage, perform: { message in
-                if message != nil {
-                    self.alertMessage = message
-                    self.isShowAlert = true
-                }
-            })
         }
-        
+        .fullScreenCover(isPresented: $isPresentedCustomPopup, onDismiss: {
+            self.gameData.gameStatus = .wait
+            self.gameData.popupMessage = nil
+            self.gameData.completion = {}
+        }, content: {
+            switch self.gameData.gameStatus  {
+            case .showSelectCardPopup:
+                SelectCardsView(title: self.gameData.popupMessage ?? "", cards: self.gameData.popupCards, select1Action: {
+                    isPresentedCustomPopup = false
+                    self.gameData.popupCards = [self.gameData.popupCards[0], self.gameData.popupCards[1]]
+                    self.gameData.completion()
+                }, select2Action: {
+                    isPresentedCustomPopup = false
+                    self.gameData.popupCards = [self.gameData.popupCards[0], self.gameData.popupCards[2]]
+                    self.gameData.completion()
+                }, closeAction: {
+                    isPresentedCustomPopup = false
+                })
+                .presentationBackground(.black.opacity(0.2))
+            case .showOneSecMessagePopup:
+                OneSecMessageView(title: self.gameData.popupMessage ?? "", cards: self.gameData.popupCards)
+                    .presentationBackground(.black.opacity(0.2))
+            default:
+                EmptyView()
+            }
+        })
+        .alert(self.alertMessage ?? "", isPresented: self.$isPresentedAlert) {
+            Button("OK") { self.isPresentedAlert = false}
+        }
+        .onChange(of: gameData.gameStatus) {
+            print("change gameStatus: \(gameData.gameStatus)")
+            if self.gameStatus == gameData.gameStatus { return }
+            self.gameStatus = gameData.gameStatus
+            
+            switch self.gameStatus {
+            case .showSelectCardPopup:
+                self.isPresentedCustomPopup = true
+            case .showOneSecMessagePopup:
+                self.isPresentedCustomPopup = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    isPresentedCustomPopup = false
+                }
+            case .showAlert:
+                self.alertMessage = self.gameData.popupMessage
+                self.gameData.popupMessage = nil
+                self.isPresentedAlert = true
+            default:
+                isPresentedCustomPopup = false
+            }
+        }
     }
 
     private func addItem() {

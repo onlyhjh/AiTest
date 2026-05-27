@@ -10,13 +10,17 @@ import Combine
 
 enum GameStatus {
     case start
+    case showSelectCardPopup
+    case showOneSecMessagePopup
+    case showAlert
     case next
     case wait
-    case guckginSelectPopup
 }
 
 class GameData: ObservableObject {
     @Published var gameStatus: GameStatus = .wait
     @Published var deckCards: [Card] = []
-    @Published var popupMessage: String? = nil
+    var popupMessage: String? = nil
+    var popupCards: [Card] = []
+    var completion: () -> Void = { }
 }

@@ -26,8 +26,9 @@ struct Card: Identifiable, Equatable, Hashable, Codable {
     let isChoDan: Bool
     let isDoublePi: Bool
     let piNum: Int
+    var imageName: String?
     
-    init(month: Int, type: CardType, isGodori: Bool = false, isChungDan: Bool = false, isHongDan: Bool = false, isChoDan: Bool = false, isDoublePi: Bool = false, piNum: Int = 0) {
+    init(month: Int, type: CardType, isGodori: Bool = false, isChungDan: Bool = false, isHongDan: Bool = false, isChoDan: Bool = false, isDoublePi: Bool = false, piNum: Int = 0, imageName: String? = nil) {
         self.month = month
         self.type = type
         self.isGodori = isGodori
@@ -36,5 +37,6 @@ struct Card: Identifiable, Equatable, Hashable, Codable {
         self.isChoDan = isChoDan
         self.isDoublePi = isDoublePi
         self.piNum = piNum
+        self.imageName  = imageName
     }
 }

@@ -24,9 +24,7 @@ class CardNode: SKSpriteNode {
         self.card = card
         self.isFront = isFront
         
-        let imageName = String(format: "hwatu_%02d_", card.month) + String(describing: card.type) + (card.type == .pi ? "_\(card.piNum)" : "")
-        print("bonus card imageName :\(imageName)  >>> \(card.piNum) ")
-        self.frontImage = UIImage(named: imageName) ?? .hwatuBack
+        self.frontImage = UIImage(named: card.imageName ?? "hwatu_back") ?? .hwatuBack
         let texture = SKTexture(image: isFront ? frontImage : .hwatuBack)
         
         super.init(texture: texture, color: .clear, size: cardSize)
@@ -56,7 +54,7 @@ class CardNode: SKSpriteNode {
         }
         else {
             let moveAction = SKAction.move(to: movePosition, duration: duration)
-            print("???? scale compare 1:\(afterCardNodeScale.rawValue) <> 2:\(self.xScale)")
+            //print("???? scale compare 1:\(afterCardNodeScale.rawValue) <> 2:\(self.xScale)")
             if afterCardNodeScale.rawValue == self.xScale  {
                 sequnce = [moveAction]
             }

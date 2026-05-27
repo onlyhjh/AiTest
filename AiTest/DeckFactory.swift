@@ -5,6 +5,7 @@
 //  Created by Joey's Mac mini on 5/6/26.
 //
 
+import Foundation
 class DeckFactory {
     
     func generateFullDeck() -> [Card] {
@@ -107,7 +108,12 @@ class DeckFactory {
             }
         }
         
+        // 이미지 이름 넣기
+        for (i, card) in deck.enumerated() {
+            deck[i].imageName = String(format: "hwatu_%02d_", card.month) + String(describing: card.type) + (card.type == .pi ? "_\(card.piNum)" : "")
+            //print("card imageName :\(imageName)  >>> \(card.piNum) ")
+        }
+        
         return deck.shuffled()
     }
-
 }
