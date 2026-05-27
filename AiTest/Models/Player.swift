@@ -7,11 +7,15 @@
 
 final class Player {
     let index: Int
+    var imageName: String?
     var handCards: [Card] = []
     var capturedCardTypeGroup: [[Card]] = [[],[],[],[]]  // pi, dan, yeol, gwang
     var money: Int = 1000
     var goCount: Int = 0
     var charactorIndex: Int = 0
+    // 첫뻑
+    var fuckCardMonths: [Int] = []
+    var scoreText: String?
     
     // MARK: - 계산 프로퍼티
     var piCount: Int {

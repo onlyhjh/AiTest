@@ -12,6 +12,7 @@ enum GameStatus {
     case start
     case showSelectCardPopup
     case showOneSecMessagePopup
+    case showWinnerPopup
     case showAlert
     case next
     case wait
@@ -20,7 +21,9 @@ enum GameStatus {
 class GameData: ObservableObject {
     @Published var gameStatus: GameStatus = .wait
     @Published var deckCards: [Card] = []
+    var popupTitle: String? = nil
     var popupMessage: String? = nil
     var popupCards: [Card] = []
+    var players: [Player] = []
     var completion: () -> Void = { }
 }

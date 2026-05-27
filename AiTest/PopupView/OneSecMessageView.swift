@@ -9,21 +9,27 @@ import SwiftUI
 
 public struct OneSecMessageView: View {
     
-    var title: String
+    var title: String?
+    var message: String?
     var cards: [Card]
     
     // 😎 😭 🥶😱🤯😭😘🤩💀
-    init(title: String, cards: [Card]) {
+    init(title: String?, message: String?, cards: [Card]) {
         self.title = title
+        self.message = message
         self.cards = cards
     }
     
     public var body: some View {
         ZStack {
             VStack(spacing: 10) {
-                HStack(spacing: 10) {
+                if let title = title {
                     Text(title)
-                        .font(.largeTitle)
+                        .font(.title)
+                }
+                if let message = message {
+                    Text(message)
+                        .font(.caption)
                 }
                 HStack(spacing: 0) {
                     ForEach(0..<cards.count) { index in

@@ -9,14 +9,16 @@ import SwiftUI
 
 public struct SelectCardsView: View {
     
-    var title: String
+    var title: String?
+    var message: String?
     var cards: [Card]
     var select1Action: (() -> Void)
     var select2Action: (() -> Void)
     var closeAction: (() -> Void)
     
-    init(title: String, cards: [Card], select1Action: @escaping () -> Void, select2Action: @escaping () -> Void, closeAction: @escaping () -> Void) {
+    init(title: String?, message: String?, cards: [Card], select1Action: @escaping () -> Void, select2Action: @escaping () -> Void, closeAction: @escaping () -> Void) {
         self.title = title
+        self.message = message
         self.cards = cards
         self.select1Action = select1Action
         self.select2Action = select2Action
@@ -30,8 +32,8 @@ public struct SelectCardsView: View {
                     Image(cards[0].imageName ?? "hwatu_back")
                         .resizable()
                         .frame(width: 25, height: 37)
-                    Text(title)
-                    
+                    Text(title ?? "")
+                        .font(.title)
                     Button {
                         closeAction()
                     } label: {
@@ -39,6 +41,10 @@ public struct SelectCardsView: View {
                                 .font(.title)
                                 .foregroundColor(.gray)
                     }
+                }
+                if let message = message {
+                    Text(message)
+                        .font(.caption)
                 }
                 HStack(spacing: 10) {
                     Button {

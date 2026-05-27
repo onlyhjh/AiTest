@@ -30,7 +30,7 @@ class GameScene: SKScene, ObservableObject {
     private var cardGap: CGFloat = 0
     private var cardLayeredGap: CGFloat = 0
     
-    private let cardDuration: Double = 0.1
+    private let cardDuration: Double = 0.3
     
     init(size: CGSize, gameData: GameData) {
         self.gameData = gameData
@@ -197,25 +197,55 @@ class GameScene: SKScene, ObservableObject {
                 await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(playerIndex: self.currentPlayerIndex)
                 await self.flipDeckCardAfterBonusCard()
                 
-                // 쪽이면 > 쪽카드 받아가기,
-                if nextDeckCardExceptBonus.month == handCard.month {
+                // 쪽이면 > 쪽카드 받아가기 (막장 제외)
+                if nextDeckCardExceptBonus.month == handCard.month && player.handCards.count > 0 {
                     //TODO: 한장씩 받아오기
-                    self.gameData.popupMessage = "😘 쪽!!!\n한장씩 주세요~"
+                    self.gameData.popupTitle = "😘 쪽!!!"
+                    self.gameData.popupMessage = "한장씩 내놔~"
                     self.gameData.popupCards = [handCard, nextDeckCardExceptBonus]
                     self.gameData.gameStatus = .showOneSecMessagePopup
+                    self.collectOnePiCardFromOtherPlayer()
                 }
             case 1: // 매칭카드 1개
-                //TODO: 덱카드 뒤집을때 경우 뻑 처리(첫뻑, 첫뻑후 연속뻑, 연속뻑3회)
-                if nextDeckCardExceptBonus.month == handCard.month {
+                //덱카드 뒤집을때 경우 뻑 처리(첫뻑, 첫뻑후 연속뻑, 연속뻑3회, 막장 제외)
+                if nextDeckCardExceptBonus.month == handCard.month && player.handCards.count > 0 {
                     await self.movePlayerHandCardToTable(player: player, handCard: handCard)
                     let tableGroupIndex = self.getTableCardGroupIndex(cardMonth: handCard.month)
                     await self.moveBonusDeckCardsToTable(tableGroupIndex: tableGroupIndex)
                     // await self.flipDeckCardAfterBonusCard() 가져가면 안됨
                     await self.moveDeckCardToTable()
-                    self.gameData.popupMessage = "🤯 뻑!!!"
+                    
+                    // 첫뻑
+                    if player.handCards.count == 6 {
+                        self.gameData.popupTitle = "😂 첫뻑!!!"
+                        self.gameData.popupMessage = "웃프다~ 일단 돈 받자~"
+                        self.collectMoney()
+                    }
+                    //  2연뻑
+                    else if player.handCards.count == 5 && player.fuckCardMonths.count == 1 {
+                        self.gameData.popupTitle = "😂 첫뻑 후 2연속 뻑!!!"
+                        self.gameData.popupMessage = "대단하다~ 일단 따블로 돈 받자~"
+                        self.collectMoney()
+                    }
+                    else if player.fuckCardMonths.count == 2 {
+                        self.gameData.popupTitle = "😂 뻑 3번 승!!!"
+                        self.gameData.popupMessage = "뭐여 이건~"
+                        self.gameData.completion = { self.showWinner() }
+                        self.collectMoney()
+                    }
+                    else {
+                        self.gameData.popupTitle = "🤯 뻑!!!"
+                        self.gameData.popupMessage = "아놔~"
+                    }
+                    
                     self.gameData.popupCards = [handCard, nextDeckCardExceptBonus]
                     self.gameData.popupCards.append(contentsOf: matchingTableCards)
                     self.gameData.gameStatus = .showOneSecMessagePopup
+                    player.fuckCardMonths.append(handCard.month)
+                    
+                    if player.fuckCardMonths.count == 3 {
+                        self.removeAllChildren()
+                    }
                 }
                 else {
                     await movePlayerHandCardMatchingTableCardToPlayerChaptured(player: player, handCard: handCard, matchingTableCards: matchingTableCards)
@@ -225,13 +255,15 @@ class GameScene: SKScene, ObservableObject {
             case 2: // 매칭카드 2개
                 //TODO: 덱카드 뒤집을때 따닥 처리, 카드 선택
                 if nextDeckCardExceptBonus.month == handCard.month {
-                    self.gameData.popupMessage = "🤩 따닥!!!\n한장씩 주세요~"
+                    self.gameData.popupMessage = "🤩 따닥!!!"
+                    self.gameData.popupMessage = "한장씩 내놔~"
                     self.gameData.popupCards = [handCard, nextDeckCardExceptBonus]
                     self.gameData.popupCards.append(contentsOf: matchingTableCards)
                     self.gameData.gameStatus = .showOneSecMessagePopup
                 }
                 //TODO: 카드선택
                 else {
+                    self.gameData.popupTitle = "🥸 카드 선택!!!"
                     self.gameData.popupMessage = "가져올 카드를 선택해 주세요"
                     self.gameData.popupCards = [handCard]
                     self.gameData.popupCards.append(contentsOf: matchingTableCards)
@@ -247,8 +279,9 @@ class GameScene: SKScene, ObservableObject {
                 }
                 //TODO: 덱카드 뒤집을때 따닥 처리, 카드 선택
             case 3: // 매칭카드 3개
-                //TODO:  3개 인경우 한장씩 뺏기
-                self.gameData.popupMessage = "🥳 아싸3장!!!\n한장씩 주세요~"
+                //TODO:  쓸~ 한장씩 뺏기
+                self.gameData.popupTitle = "🥳 아싸 쓸!!!"
+                self.gameData.popupMessage = "한장씩 내놔~"
                 self.gameData.popupCards = [handCard]
                 self.gameData.popupCards.append(contentsOf: matchingTableCards)
                 self.gameData.gameStatus = .showOneSecMessagePopup
@@ -259,6 +292,27 @@ class GameScene: SKScene, ObservableObject {
             self.sortPlayerHandCards(playerIndex: currentPlayerIndex)
             //self.currentPlayerIndex = (self.currentPlayerIndex + 1) % 3
         }
+    }
+    
+    private func collectOnePiCardFromOtherPlayer() {
+        
+    }
+    
+    private func collectMoney() {
+        
+    }
+    
+    private func showWinner() {
+        self.winnerIndex = self.currentPlayerIndex
+        self.gameData.popupTitle = "🥳 아싸 승!!!"
+        self.gameData.popupMessage = "광3점, 피2점, 띠1점, 고1점 >  총점 25점"
+        let winner = self.players[winnerIndex]
+        let player1 = self.players[(winnerIndex + 1) % 3]
+        let player2 = self.players[(winnerIndex + 2) % 3]
+        player1.scoreText = "피박, 광박 -12만원"
+        player2.scoreText = "피박 -5만원"
+        self.gameData.players = [winner, player1, player2]
+        self.gameData.gameStatus = .showWinnerPopup
     }
     
     // 덱카드 뒤집기 (보너스카드 이후)
@@ -280,6 +334,7 @@ class GameScene: SKScene, ObservableObject {
             case 1: // 매칭카드 1개
                 await self.moveDeckCardMatchingTableCardToPlayerChaptured(player: player, matchingTableCards: matchingTableCards)
             case 2: // 매칭카드 2개
+                self.gameData.popupTitle = "🥸 카드 선택!!!"
                 self.gameData.popupMessage = "가져올 카드를 선택해 주세요"
                 self.gameData.popupCards = [deckCard]
                 self.gameData.popupCards.append(contentsOf: matchingTableCards)
@@ -292,7 +347,8 @@ class GameScene: SKScene, ObservableObject {
                 self.gameData.gameStatus = .showSelectCardPopup
             case 3: // 매칭카드 3개
                 //TODO:  3개 인경우 한장씩 뺏기
-                self.gameData.popupMessage = "🥳 아싸3장!!!\n한장씩 주세요~"
+                self.gameData.popupTitle = "🥳 아싸3장!!!"
+                self.gameData.popupMessage = "한장씩 내놔~"
                 self.gameData.popupCards = [deckCard]
                 self.gameData.popupCards.append(contentsOf: matchingTableCards)
                 self.gameData.gameStatus = .showOneSecMessagePopup
@@ -347,6 +403,8 @@ class GameScene: SKScene, ObservableObject {
         }
         // 테이블 바닥카드 가져갈때 위치값 비워줌
         self.sortTableCardGroup(tableGroupIndex: tableGroupIndex)
+        do { try await Task.sleep(for: .seconds(cardDuration))
+        } catch { print("error: \(error)")}
     }
     
     private func moveBonusPlayerHandBonusCardToPlayerChaptured(player: Player, handCard: Card) async {
@@ -364,6 +422,8 @@ class GameScene: SKScene, ObservableObject {
         
         // 덱에서 카드 한장 새로 받기
         await self.moveDeckCardToPlayerHand(playerIndex: player.index, cardIndex: player.handCards.count)
+        do { try await Task.sleep(for: .seconds(cardDuration))
+        } catch { print("error: \(error)")}
     }
 
     func getTableCardZPosition(groupIndex: Int, cardIndexByGroup: Int) -> Int {
@@ -418,6 +478,9 @@ class GameScene: SKScene, ObservableObject {
             matchingTableCardNode.moveAndTurnCard(movePosition: movePosition, duration: cardDuration, isFront: true, zPosition: cardIndexByType, afterCardNodeScale: .normal)
         }
         self.sortTableCardGroup(tableGroupIndex: tableCardGroupIndex)
+        
+        do { try await Task.sleep(for: .seconds(cardDuration))
+        } catch { print("error: \(error)")}
     }
     
     // 테이블 바닥카드 가져갈때 해당 그룹 정렬
@@ -709,7 +772,7 @@ class GameScene: SKScene, ObservableObject {
         playerAreaNode.zPosition = -100
         addChild(playerAreaNode)
 
-        let playerImageNode = SKSpriteNode(imageNamed: "player_" + String(format: "%02d", player.charactorIndex))
+        let playerImageNode = SKSpriteNode(imageNamed: player.imageName ?? "player_unkown")
         playerImageNode.name = "playerImageNode_\(playerIndex)"
         playerImageNode.size = self.playerImageSize
         let playerImageMaskPath = UIBezierPath(roundedRect: playerImageNode.frame, cornerRadius: self.cardSize.width / 2)
@@ -737,7 +800,8 @@ class GameScene: SKScene, ObservableObject {
         
         for i in 0...2 {
             self.players[i].charactorIndex = randomThree[i]
-            setPlayer(playerIndex: i)
+            self.players[i].imageName = "player_" + String(format: "%02d", randomThree[i])
+            self.setPlayer(playerIndex: i)
         }
     }
     
