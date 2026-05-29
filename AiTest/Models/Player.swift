@@ -13,8 +13,10 @@ final class Player {
     var money: Int = 1000
     var goCount: Int = 0
     var charactorIndex: Int = 0
-    // 첫뻑
+    // 뻑
     var fuckCardMonths: [Int] = []
+    // 흔들기
+    var waveCount = 0
     var scoreText: String?
     
     // MARK: - 계산 프로퍼티

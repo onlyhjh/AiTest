@@ -14,6 +14,7 @@ enum GameStatus {
     case showOneSecMessagePopup
     case showWinnerPopup
     case showAlert
+    case showSelectWavePopup
     case next
     case wait
 }
@@ -25,5 +26,5 @@ class GameData: ObservableObject {
     var popupMessage: String? = nil
     var popupCards: [Card] = []
     var players: [Player] = []
-    var completion: () -> Void = { }
+    var completion: (_ select: Int) -> Void = { select in }
 }

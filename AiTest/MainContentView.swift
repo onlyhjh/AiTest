@@ -65,22 +65,29 @@ struct MainContentView: View {
         }
         .fullScreenCover(isPresented: $isPresentedCustomPopup, onDismiss: {
             self.gameData.gameStatus = .wait
-            self.gameData.popupTitle = nil
-            self.gameData.popupMessage = nil
-            self.gameData.players = []
-            //self.gameData.popupCards = [] 결과반환
-            self.gameData.completion = {}
         }, content: {
             switch self.gameData.gameStatus  {
             case .showSelectCardPopup:
                 SelectCardsView(title: self.gameData.popupTitle, message: self.gameData.popupMessage, cards: self.gameData.popupCards, select1Action: {
                     isPresentedCustomPopup = false
                     self.gameData.popupCards = [self.gameData.popupCards[0], self.gameData.popupCards[1]]
-                    self.gameData.completion()
+                    self.gameData.completion(0)
                 }, select2Action: {
                     isPresentedCustomPopup = false
                     self.gameData.popupCards = [self.gameData.popupCards[0], self.gameData.popupCards[2]]
-                    self.gameData.completion()
+                    self.gameData.completion(1)
+                }, closeAction: {
+                    isPresentedCustomPopup = false
+                })
+                .presentationBackground(.black.opacity(0.2))
+            case .showSelectWavePopup:
+                SelectWaveView(title: self.gameData.popupTitle, message: self.gameData.popupMessage, cards: self.gameData.popupCards, select1Action: {
+                    isPresentedCustomPopup = false
+                    self.gameData.completion(0)
+                }, select2Action: {
+                    isPresentedCustomPopup = false
+                    self.gameData.popupCards = [self.gameData.popupCards[0], self.gameData.popupCards[2]]
+                    self.gameData.completion(1)
                 }, closeAction: {
                     isPresentedCustomPopup = false
                 })
@@ -91,7 +98,7 @@ struct MainContentView: View {
             case .showWinnerPopup:
                 WinnerView(title: self.gameData.popupTitle, message: self.gameData.popupMessage, players: self.gameData.players, closeAction: {
                     isPresentedCustomPopup = false
-                    self.gameData.completion()
+                    self.gameData.completion(0)
                 })
             default:
                 EmptyView()
@@ -108,13 +115,15 @@ struct MainContentView: View {
             switch self.gameStatus {
             case .showSelectCardPopup:
                 self.isPresentedCustomPopup = true
+            case .showSelectWavePopup:
+                self.isPresentedCustomPopup = true
             case .showWinnerPopup:
                 self.isPresentedCustomPopup = true
             case .showOneSecMessagePopup:
                 self.isPresentedCustomPopup = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                     isPresentedCustomPopup = false
-                    gameData.completion()
+                    gameData.completion(0)
                 }
             case .showAlert:
                 self.alertMessage = self.gameData.popupMessage
