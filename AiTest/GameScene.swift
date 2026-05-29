@@ -13,6 +13,7 @@ import Combine
 class GameScene: SKScene, ObservableObject {
 
     var gameData: GameData
+    var popupData: PopupData
     
     static let playerNames = ["고니", "정마담", "고광렬", "짝귀", "평경장", "박무석", "아귀", "곽철용", "장동식", "함대길", "꼬장", "작은마담", "우사장", "송마담", "허미나", "영미", "도일출", "애꾸", "이상무", "물영감", "까치"]
     
@@ -33,8 +34,9 @@ class GameScene: SKScene, ObservableObject {
     private let cardDuration: Double = 0.2
     private let emptyCardMonth: Int = 100
     
-    init(size: CGSize, gameData: GameData) {
+    init(size: CGSize, gameData: GameData, popupData: PopupData) {
         self.gameData = gameData
+        self.popupData = popupData
         super.init(size: size)
     }
     
@@ -163,8 +165,6 @@ class GameScene: SKScene, ObservableObject {
         }
     }
     
-    
-    
     private func playWithSelectedHandCard(handCard: Card) {
         let player = players[currentPlayerIndex]
         let sameMonthPlayerHandCards = player.handCards.filter({$0.month == handCard.month}) //폭탄, 흔들기
@@ -203,20 +203,22 @@ class GameScene: SKScene, ObservableObject {
             case 0: // 매칭카드 없는 경우
                 // 흔들기
                 if sameMonthPlayerHandCards.count == 3 {
-                    // 내일 > 먹을카드가 있을때 폭탄, 없을때 흔들기 선택
-                    self.gameData.popupTitle = "😵‍💫 흔들기!!!"
-                    self.gameData.popupMessage = "흔들까요? 아님 그냥 칠래요?"
-                    self.gameData.popupCards = sameMonthPlayerHandCards
-                    self.gameData.gameStatus = .showSelectWavePopup
-                    self.gameData.completion = { select in
-                        if select == 0 { player.waveCount += 1 }
-                        self.gameData.popupTitle = "😵‍💫 흔들었ㅇ!!!"
-                        self.gameData.popupMessage = "어질어질 하지~"
-                        self.gameData.popupCards = sameMonthPlayerHandCards
-                        self.gameData.gameStatus = .showOneSecMessagePopup
-//                        self.gameData.completion = {
-//                            await self.playWithNoMatchingCard(player: player, handCard: handCard, nextDeckCardExceptBonus: nextDeckCardExceptBonus)
-//                        }
+                    PopupManager.shared.showPopup(popupData: self.popupData, type: .selectWave, cards: sameMonthPlayerHandCards, players: []) { select in
+                        //  흔들기 선택
+                        if select == 0 {
+                            player.waveCount += 1
+                            //  흔들기 팝업 다시 보이기
+                            PopupManager.shared.showPopup(popupData: self.popupData, type: .wave, cards: sameMonthPlayerHandCards, players: []) { select in
+                                Task{
+                                    await self.playWithNoMatchingCard(player: player, handCard: handCard, nextDeckCardExceptBonus: nextDeckCardExceptBonus)
+                                }
+                            }
+                        }
+                        else {
+                            Task{
+                                await self.playWithNoMatchingCard(player: player, handCard: handCard, nextDeckCardExceptBonus: nextDeckCardExceptBonus)
+                            }
+                        }
                     }
                 }
                 else {
@@ -225,7 +227,7 @@ class GameScene: SKScene, ObservableObject {
             case 1: // 매칭카드 1개
                 // 폭탄
                 if sameMonthPlayerHandCards.count == 3 {
-                    PopupManager.shared.showPopup(gameData: self.gameData, type: .boom, cards: sameMonthPlayerHandCards, players: [], completion: {_ in 
+                    PopupManager.shared.showPopup(popupData: self.popupData, type: .boom, cards: sameMonthPlayerHandCards, players: [], completion: {_ in
                         Task{
                             await self.movePlayerHandCardsMatchingTableCardsToPlayerChaptured(player: player, handCards: sameMonthPlayerHandCards, matchingTableCards: matchingTableCards)
                             await self.collectPiCardFromOtherPlayer(count: 1)
@@ -240,39 +242,34 @@ class GameScene: SKScene, ObservableObject {
                 else if nextDeckCardExceptBonus.month == handCard.month && player.handCards.count > 0 {
                     await self.movePlayerHandCardsToTable(player: player, handCards: [handCard])
                     let tableGroupIndex = self.getTableCardGroupIndex(cardMonth: handCard.month)
+                    let fuckCards = [handCard, nextDeckCardExceptBonus] + matchingTableCards
                     await self.moveBonusDeckCardsToTable(tableGroupIndex: tableGroupIndex)
                     // await self.flipDeckCardAfterBonusCard() 가져가면 안됨
                     await self.moveDeckCardToTable()
                     
                     // 첫뻑
                     if player.handCards.count == 6 {
-                        self.gameData.popupTitle = "😂 첫뻑!!!"
-                        self.gameData.popupMessage = "웃프다~ 일단 돈 받자~"
+                        PopupManager.shared.showPopup(popupData: self.popupData, type: .firstFuck, cards: fuckCards, players: [], completion: {_ in })
                         self.collectMoney(nyang: 5)
                     }
                     //  2연뻑
                     else if player.handCards.count == 5 && player.fuckCardMonths.count == 1 {
-                        self.gameData.popupTitle = "😂 첫뻑 후 2연속 뻑!!!"
-                        self.gameData.popupMessage = "대단하다~ 일단 따블로 돈 받자~"
+                        PopupManager.shared.showPopup(popupData: self.popupData, type: .secondFuck, cards: fuckCards, players: [], completion: {_ in })
                         self.collectMoney(nyang: 10)
                     }
                     else if player.fuckCardMonths.count == 2 {
-                        self.gameData.popupTitle = "😂 뻑 3번 승!!!"
-                        self.gameData.popupMessage = "뭐여 이건~"
-                        self.gameData.completion = { select in
+                        PopupManager.shared.showPopup(popupData: self.popupData, type: .thirdFuck, cards: fuckCards, players: [], completion: {_ in
                             self.showWinner(winnerIndex: self.currentPlayerIndex)
-                        }
+                        })
                         self.collectMoney(nyang: 3)
                         return
                     }
                     else {
-                        self.gameData.popupTitle = "🤯 뻑!!!"
-                        self.gameData.popupMessage = "아놔~"
+                        PopupManager.shared.showPopup(popupData: self.popupData, type: .fuck, cards: fuckCards, players: [], completion: {_ in
+                            self.showWinner(winnerIndex: self.currentPlayerIndex)
+                        })
                     }
                     
-                    self.gameData.popupCards = [handCard, nextDeckCardExceptBonus]
-                    self.gameData.popupCards.append(contentsOf: matchingTableCards)
-                    self.gameData.gameStatus = .showOneSecMessagePopup
                     player.fuckCardMonths.append(handCard.month)
                 }
                 else {
@@ -283,39 +280,29 @@ class GameScene: SKScene, ObservableObject {
             case 2: // 매칭카드 2개
                 //TODO: 덱카드 뒤집을때 따닥 처리, 카드 선택
                 if nextDeckCardExceptBonus.month == handCard.month {
-                    self.gameData.popupMessage = "🤩 따닥!!!"
-                    self.gameData.popupMessage = "한장씩 내놔~"
-                    self.gameData.popupCards = [handCard, nextDeckCardExceptBonus]
-                    self.gameData.popupCards.append(contentsOf: matchingTableCards)
-                    self.gameData.gameStatus = .showOneSecMessagePopup
+                    PopupManager.shared.showPopup(popupData: self.popupData, type: .ddadak, cards: [handCard, nextDeckCardExceptBonus] + matchingTableCards, players: [], completion: { _ in })
                 }
                 //TODO: 카드선택
                 else {
-                    self.gameData.popupTitle = "🥸 카드 선택!!!"
-                    self.gameData.popupMessage = "가져올 카드를 선택해 주세요"
-                    self.gameData.popupCards = [handCard]
-                    self.gameData.popupCards.append(contentsOf: matchingTableCards)
-                    self.gameData.completion = { select in
+                    PopupManager.shared.showPopup(popupData: self.popupData, type: .selectCard, cards: [handCard] + matchingTableCards, players: [], completion: { select in
                         Task {
-                            await self.movePlayerHandCardsMatchingTableCardsToPlayerChaptured(player: player, handCards: [self.gameData.popupCards[0]], matchingTableCards: [self.gameData.popupCards[1]])
+                            await self.movePlayerHandCardsMatchingTableCardsToPlayerChaptured(player: player, handCards: [self.popupData.cards[0]], matchingTableCards: [self.popupData.cards[1]])
                             await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(playerIndex: self.currentPlayerIndex)
                             await self.flipDeckCardAfterBonusCard()
-                            self.gameData.popupCards = []
+                            self.popupData.cards = []
                         }
-                    }
-                    self.gameData.gameStatus = .showSelectCardPopup
+                    })
                 }
                 //TODO: 덱카드 뒤집을때 따닥 처리, 카드 선택
             case 3: // 매칭카드 3개
                 //TODO:  3장 가져오기 ~ 한장씩 뺏기
                 let isPlayerFuckCard = player.fuckCardMonths.first(where: { $0 == handCard.month }) != nil
-                self.gameData.popupTitle = "🥳 아싸 3장!!!"
-                self.gameData.popupMessage = isPlayerFuckCard ? "자뻑인거 알지? 두장씩 내놔~" : "한장씩 내놔~"
-                self.gameData.popupCards = [handCard]
-                self.gameData.popupCards.append(contentsOf: matchingTableCards)
-                self.gameData.gameStatus = .showOneSecMessagePopup
-                await movePlayerHandCardsMatchingTableCardsToPlayerChaptured(player: player, handCards: [handCard], matchingTableCards: matchingTableCards)
-                await self.collectPiCardFromOtherPlayer(count: isPlayerFuckCard ? 2 : 1)
+                PopupManager.shared.showPopup(popupData: self.popupData, type: isPlayerFuckCard ? .threeTableCardsWithPlayerFuck : .threeTableCards, cards: [handCard] + matchingTableCards, players: [], completion: { _ in
+                    Task {
+                        await self.movePlayerHandCardsMatchingTableCardsToPlayerChaptured(player: player, handCards: [handCard], matchingTableCards: matchingTableCards)
+                        await self.collectPiCardFromOtherPlayer(count: isPlayerFuckCard ? 2 : 1)
+                    }
+                })
             default: break
             }
             
@@ -356,12 +343,11 @@ class GameScene: SKScene, ObservableObject {
             
             // 쪽이면 > 쪽카드 받아가기 (막장 제외)
             if nextDeckCardExceptBonus.month == handCard.month && player.handCards.count > 0 {
-                //TODO: 한장씩 받아오기
-                self.gameData.popupTitle = "😘 쪽!!!"
-                self.gameData.popupMessage = "한장씩 내놔~"
-                self.gameData.popupCards = [handCard, nextDeckCardExceptBonus]
-                self.gameData.gameStatus = .showOneSecMessagePopup
-                await self.collectPiCardFromOtherPlayer(count: 1)
+                PopupManager.shared.showPopup(popupData: popupData, type: .kiss, cards: [handCard, nextDeckCardExceptBonus], players: []) { select in
+                    Task {
+                        await self.collectPiCardFromOtherPlayer(count: 1)
+                    }
+                }
             }
         }
     }
@@ -385,18 +371,16 @@ class GameScene: SKScene, ObservableObject {
     
     private func showWinner(winnerIndex: Int) {
         self.winnerIndex = winnerIndex
-        self.gameData.popupTitle = "🥳 아싸 승!!!"
-        self.gameData.popupMessage = "광3점, 피2점, 띠1점, 고1점 >  총점 25점"
+        
         let winner = self.players[winnerIndex]
         let player1 = self.players[(winnerIndex + 1) % 3]
         let player2 = self.players[(winnerIndex + 2) % 3]
         player1.scoreText = "피박, 광박 -12만냥"
         player2.scoreText = "피박 -5만냥"
-        self.gameData.players = [winner, player1, player2]
-        self.gameData.gameStatus = .showWinnerPopup
-        self.gameData.completion = { select in
+        
+        PopupManager.shared.showPopup(popupData: self.popupData, type: .winner, cards: [], players: [winner, player1, player2], message: "광3점, 피2점, 띠1점, 고1점 >  총점 25점" ,completion: { select in
             self.removeAllChildren()
-        }
+        })
     }
     
     // 덱카드 뒤집기 (보너스카드 이후)
@@ -418,27 +402,21 @@ class GameScene: SKScene, ObservableObject {
             case 1: // 매칭카드 1개
                 await self.moveDeckCardMatchingTableCardToPlayerChaptured(player: player, matchingTableCards: matchingTableCards)
             case 2: // 매칭카드 2개
-                self.gameData.popupTitle = "🥸 카드 선택!!!"
-                self.gameData.popupMessage = "가져올 카드를 선택해 주세요"
-                self.gameData.popupCards = [deckCard]
-                self.gameData.popupCards.append(contentsOf: matchingTableCards)
-                self.gameData.completion = { select in
+                PopupManager.shared.showPopup(popupData: self.popupData, type: .selectCard, cards: [deckCard] + matchingTableCards, players: [], completion: { select in
                     Task {
-                        await self.moveDeckCardMatchingTableCardToPlayerChaptured(player: player, matchingTableCards: [self.gameData.popupCards[1]])
-                        self.gameData.popupCards = []
+                        await self.moveDeckCardMatchingTableCardToPlayerChaptured(player: player, matchingTableCards: [self.popupData.cards[1]])
+                        self.popupData.cards = []
                     }
-                }
-                self.gameData.gameStatus = .showSelectCardPopup
+                })
             case 3: // 매칭카드 3개
                 //TODO:  3개 인경우 한장씩 뺏기
                 let isPlayerFuckCard = player.fuckCardMonths.first(where: { $0 == deckCard.month }) != nil
-                self.gameData.popupTitle = "🥳 아싸 3장!!!"
-                self.gameData.popupMessage = isPlayerFuckCard ? "자뻑인거 알지? 두장씩 내놔~" : "한장씩 내놔~"
-                self.gameData.popupCards = [deckCard]
-                self.gameData.popupCards.append(contentsOf: matchingTableCards)
-                self.gameData.gameStatus = .showOneSecMessagePopup
-                await moveDeckCardMatchingTableCardToPlayerChaptured(player: player, matchingTableCards: matchingTableCards)
-                await self.collectPiCardFromOtherPlayer(count: isPlayerFuckCard ? 2 : 1)
+                PopupManager.shared.showPopup(popupData: self.popupData, type: isPlayerFuckCard ? .threeTableCardsWithPlayerFuck : .threeTableCards, cards: [deckCard] + matchingTableCards, players: [], completion: { _ in
+                    Task {
+                        await self.moveDeckCardMatchingTableCardToPlayerChaptured(player: player, matchingTableCards: matchingTableCards)
+                        await self.collectPiCardFromOtherPlayer(count: isPlayerFuckCard ? 2 : 1)
+                    }
+                })
             default: break
             }
             

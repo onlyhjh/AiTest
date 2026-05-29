@@ -15,14 +15,15 @@ struct MainContentView: View {
     @Query private var items: [Item]
 
     @StateObject private var gameData = GameData()
+    @StateObject private var popupData = PopupData()
     @State var isPresentedAlert: Bool = false
-    @State var isPresentedCustomPopup = false
+    @State var isPresentedPopup = false
     @State var alertMessage: String? = nil
     @State var popupType: String? = nil
-    @State var gameStatus:GameStatus = .wait
+    @State var popupStatus: PopupStatus = .closePopup
     
     func getGameScene(size: CGSize) -> SKScene {
-        let scene = GameScene(size: size, gameData: gameData)
+        let scene = GameScene(size: size, gameData: self.gameData, popupData: self.popupData)
         scene.scaleMode = .aspectFit
         return scene
     }
@@ -63,42 +64,42 @@ struct MainContentView: View {
             }
             .ignoresSafeArea(.all)
         }
-        .fullScreenCover(isPresented: $isPresentedCustomPopup, onDismiss: {
-            self.gameData.gameStatus = .wait
+        .fullScreenCover(isPresented: $isPresentedPopup, onDismiss: {
+            self.popupData.status = .closePopup
         }, content: {
-            switch self.gameData.gameStatus  {
+            switch self.popupData.status  {
             case .showSelectCardPopup:
-                SelectCardsView(title: self.gameData.popupTitle, message: self.gameData.popupMessage, cards: self.gameData.popupCards, select1Action: {
-                    isPresentedCustomPopup = false
-                    self.gameData.popupCards = [self.gameData.popupCards[0], self.gameData.popupCards[1]]
-                    self.gameData.completion(0)
+                SelectCardsView(title: self.popupData.title, message: self.popupData.message, cards: self.popupData.cards, select1Action: {
+                    isPresentedPopup = false
+                    self.popupData.cards = [self.popupData.cards[0], self.popupData.cards[1]]
+                    self.popupData.completion(0)
                 }, select2Action: {
-                    isPresentedCustomPopup = false
-                    self.gameData.popupCards = [self.gameData.popupCards[0], self.gameData.popupCards[2]]
-                    self.gameData.completion(1)
+                    isPresentedPopup = false
+                    self.popupData.cards = [self.popupData.cards[0], self.popupData.cards[2]]
+                    self.popupData.completion(1)
                 }, closeAction: {
-                    isPresentedCustomPopup = false
+                    isPresentedPopup = false
                 })
                 .presentationBackground(.black.opacity(0.2))
             case .showSelectWavePopup:
-                SelectWaveView(title: self.gameData.popupTitle, message: self.gameData.popupMessage, cards: self.gameData.popupCards, select1Action: {
-                    isPresentedCustomPopup = false
-                    self.gameData.completion(0)
+                SelectWaveView(title: self.popupData.title, message: self.popupData.message, cards: self.popupData.cards, select1Action: {
+                    isPresentedPopup = false
+                    self.popupData.completion(0)
                 }, select2Action: {
-                    isPresentedCustomPopup = false
-                    self.gameData.popupCards = [self.gameData.popupCards[0], self.gameData.popupCards[2]]
-                    self.gameData.completion(1)
+                    isPresentedPopup = false
+                    self.popupData.cards = [self.popupData.cards[0], self.popupData.cards[2]]
+                    self.popupData.completion(1)
                 }, closeAction: {
-                    isPresentedCustomPopup = false
+                    isPresentedPopup = false
                 })
                 .presentationBackground(.black.opacity(0.2))
-            case .showOneSecMessagePopup:
-                OneSecMessageView(title: self.gameData.popupTitle, message: self.gameData.popupMessage,cards: self.gameData.popupCards)
+            case .showAutoCloseMessagePopup:
+                OneSecMessageView(title: self.popupData.title, message: self.popupData.message,cards: self.popupData.cards)
                     .presentationBackground(.black.opacity(0.2))
             case .showWinnerPopup:
-                WinnerView(title: self.gameData.popupTitle, message: self.gameData.popupMessage, players: self.gameData.players, closeAction: {
-                    isPresentedCustomPopup = false
-                    self.gameData.completion(0)
+                WinnerView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players, closeAction: {
+                    isPresentedPopup = false
+                    self.popupData.completion(0)
                 })
             default:
                 EmptyView()
@@ -107,30 +108,29 @@ struct MainContentView: View {
         .alert(self.alertMessage ?? "", isPresented: self.$isPresentedAlert) {
             Button("OK") { self.isPresentedAlert = false}
         }
-        .onChange(of: gameData.gameStatus) {
-            print("change gameStatus: \(gameData.gameStatus)")
-            if self.gameStatus == gameData.gameStatus { return }
-            self.gameStatus = gameData.gameStatus
+        .onChange(of: popupData.status) {
+            print("change popupStatus: \(popupData.status)")
+            if self.popupStatus == popupData.status { return }
+            self.popupStatus = popupData.status
             
-            switch self.gameStatus {
+            switch self.popupStatus {
             case .showSelectCardPopup:
-                self.isPresentedCustomPopup = true
+                self.isPresentedPopup = true
             case .showSelectWavePopup:
-                self.isPresentedCustomPopup = true
+                self.isPresentedPopup = true
             case .showWinnerPopup:
-                self.isPresentedCustomPopup = true
-            case .showOneSecMessagePopup:
-                self.isPresentedCustomPopup = true
+                self.isPresentedPopup = true
+            case .showAutoCloseMessagePopup:
+                self.isPresentedPopup = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                    isPresentedCustomPopup = false
-                    gameData.completion(0)
+                    isPresentedPopup = false
+                    popupData.completion(0)
                 }
             case .showAlert:
-                self.alertMessage = self.gameData.popupMessage
-                self.gameData.popupMessage = nil
+                self.alertMessage = self.popupData.message
                 self.isPresentedAlert = true
             default:
-                isPresentedCustomPopup = false
+                isPresentedPopup = false
             }
         }
     }
