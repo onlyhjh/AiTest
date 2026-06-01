@@ -157,7 +157,7 @@ class GameScene: SKScene, ObservableObject {
                 let sameMonthCards = player.handCards.filter({$0.month == handCard.month})
                 
                 if player.handCards.count == 7 && sameMonthCards.count == 4 {
-                    self.showWinner(winnerIndex: i)
+                    self.showChongTongWinnerPopup(winnerIndex: i, cards: sameMonthCards)
                     self.collectMoney(nyang: 10)
                     return
                 }
@@ -203,12 +203,13 @@ class GameScene: SKScene, ObservableObject {
             case 0: // 매칭카드 없는 경우
                 // 흔들기
                 if sameMonthPlayerHandCards.count == 3 {
-                    PopupManager.shared.showPopup(popupData: self.popupData, type: .selectWave, cards: sameMonthPlayerHandCards, players: []) { select in
+                    PopupManager.shared.showPopup(popupData: self.popupData, type: .selectWave, cards: sameMonthPlayerHandCards, players: [player]) { select in
                         //  흔들기 선택
                         if select == 0 {
                             player.waveCount += 1
-                            //  흔들기 팝업 다시 보이기
-                            PopupManager.shared.showPopup(popupData: self.popupData, type: .wave, cards: sameMonthPlayerHandCards, players: []) { select in
+                            //  흔들기 확인 팝업 다시 보이기
+                            PopupManager.shared.showPopup(popupData: self.popupData, type: .wave, cards: sameMonthPlayerHandCards, players: [player]) { select in
+                                print("??????? select: \(select)")
                                 Task{
                                     await self.playWithNoMatchingCard(player: player, handCard: handCard, nextDeckCardExceptBonus: nextDeckCardExceptBonus)
                                 }
@@ -227,7 +228,7 @@ class GameScene: SKScene, ObservableObject {
             case 1: // 매칭카드 1개
                 // 폭탄
                 if sameMonthPlayerHandCards.count == 3 {
-                    PopupManager.shared.showPopup(popupData: self.popupData, type: .boom, cards: sameMonthPlayerHandCards, players: [], completion: {_ in
+                    PopupManager.shared.showPopup(popupData: self.popupData, type: .boom, cards: sameMonthPlayerHandCards, players: [player], completion: {_ in
                         Task{
                             await self.movePlayerHandCardsMatchingTableCardsToPlayerChaptured(player: player, handCards: sameMonthPlayerHandCards, matchingTableCards: matchingTableCards)
                             await self.collectPiCardFromOtherPlayer(count: 1)
@@ -249,24 +250,24 @@ class GameScene: SKScene, ObservableObject {
                     
                     // 첫뻑
                     if player.handCards.count == 6 {
-                        PopupManager.shared.showPopup(popupData: self.popupData, type: .firstFuck, cards: fuckCards, players: [], completion: {_ in })
+                        PopupManager.shared.showPopup(popupData: self.popupData, type: .firstFuck, cards: fuckCards, players: [player], completion: {_ in })
                         self.collectMoney(nyang: 5)
                     }
                     //  2연뻑
                     else if player.handCards.count == 5 && player.fuckCardMonths.count == 1 {
-                        PopupManager.shared.showPopup(popupData: self.popupData, type: .secondFuck, cards: fuckCards, players: [], completion: {_ in })
+                        PopupManager.shared.showPopup(popupData: self.popupData, type: .secondFuck, cards: fuckCards, players: [player], completion: {_ in })
                         self.collectMoney(nyang: 10)
                     }
                     else if player.fuckCardMonths.count == 2 {
-                        PopupManager.shared.showPopup(popupData: self.popupData, type: .thirdFuck, cards: fuckCards, players: [], completion: {_ in
-                            self.showWinner(winnerIndex: self.currentPlayerIndex)
+                        PopupManager.shared.showPopup(popupData: self.popupData, type: .thirdFuck, cards: fuckCards, players: [player], completion: {_ in
+                            self.showWinnerPopup(winnerIndex: self.currentPlayerIndex)
                         })
                         self.collectMoney(nyang: 3)
                         return
                     }
                     else {
-                        PopupManager.shared.showPopup(popupData: self.popupData, type: .fuck, cards: fuckCards, players: [], completion: {_ in
-                            self.showWinner(winnerIndex: self.currentPlayerIndex)
+                        PopupManager.shared.showPopup(popupData: self.popupData, type: .fuck, cards: fuckCards, players: [player], completion: {_ in
+                            self.showWinnerPopup(winnerIndex: self.currentPlayerIndex)
                         })
                     }
                     
@@ -280,11 +281,11 @@ class GameScene: SKScene, ObservableObject {
             case 2: // 매칭카드 2개
                 //TODO: 덱카드 뒤집을때 따닥 처리, 카드 선택
                 if nextDeckCardExceptBonus.month == handCard.month {
-                    PopupManager.shared.showPopup(popupData: self.popupData, type: .ddadak, cards: [handCard, nextDeckCardExceptBonus] + matchingTableCards, players: [], completion: { _ in })
+                    PopupManager.shared.showPopup(popupData: self.popupData, type: .ddadak, cards: [handCard, nextDeckCardExceptBonus] + matchingTableCards, players: [player], completion: { _ in })
                 }
                 //TODO: 카드선택
                 else {
-                    PopupManager.shared.showPopup(popupData: self.popupData, type: .selectCard, cards: [handCard] + matchingTableCards, players: [], completion: { select in
+                    PopupManager.shared.showPopup(popupData: self.popupData, type: .selectCard, cards: [handCard] + matchingTableCards, players: [player], completion: { select in
                         Task {
                             await self.movePlayerHandCardsMatchingTableCardsToPlayerChaptured(player: player, handCards: [self.popupData.cards[0]], matchingTableCards: [self.popupData.cards[1]])
                             await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(playerIndex: self.currentPlayerIndex)
@@ -297,7 +298,7 @@ class GameScene: SKScene, ObservableObject {
             case 3: // 매칭카드 3개
                 //TODO:  3장 가져오기 ~ 한장씩 뺏기
                 let isPlayerFuckCard = player.fuckCardMonths.first(where: { $0 == handCard.month }) != nil
-                PopupManager.shared.showPopup(popupData: self.popupData, type: isPlayerFuckCard ? .threeTableCardsWithPlayerFuck : .threeTableCards, cards: [handCard] + matchingTableCards, players: [], completion: { _ in
+                PopupManager.shared.showPopup(popupData: self.popupData, type: isPlayerFuckCard ? .threeTableCardsWithPlayerFuck : .threeTableCards, cards: [handCard] + matchingTableCards, players: [player], completion: { _ in
                     Task {
                         await self.movePlayerHandCardsMatchingTableCardsToPlayerChaptured(player: player, handCards: [handCard], matchingTableCards: matchingTableCards)
                         await self.collectPiCardFromOtherPlayer(count: isPlayerFuckCard ? 2 : 1)
@@ -343,7 +344,7 @@ class GameScene: SKScene, ObservableObject {
             
             // 쪽이면 > 쪽카드 받아가기 (막장 제외)
             if nextDeckCardExceptBonus.month == handCard.month && player.handCards.count > 0 {
-                PopupManager.shared.showPopup(popupData: popupData, type: .kiss, cards: [handCard, nextDeckCardExceptBonus], players: []) { select in
+                PopupManager.shared.showPopup(popupData: popupData, type: .kiss, cards: [handCard, nextDeckCardExceptBonus], players: [player]) { select in
                     Task {
                         await self.collectPiCardFromOtherPlayer(count: 1)
                     }
@@ -369,7 +370,7 @@ class GameScene: SKScene, ObservableObject {
         print("가져올 돈 \(nyang)만냥")
     }
     
-    private func showWinner(winnerIndex: Int) {
+    private func showWinnerPopup(winnerIndex: Int) {
         self.winnerIndex = winnerIndex
         
         let winner = self.players[winnerIndex]
@@ -379,6 +380,20 @@ class GameScene: SKScene, ObservableObject {
         player2.scoreText = "피박 -5만냥"
         
         PopupManager.shared.showPopup(popupData: self.popupData, type: .winner, cards: [], players: [winner, player1, player2], message: "광3점, 피2점, 띠1점, 고1점 >  총점 25점" ,completion: { select in
+            self.removeAllChildren()
+        })
+    }
+    
+    private func showChongTongWinnerPopup(winnerIndex: Int, cards: [Card]) {
+        self.winnerIndex = winnerIndex
+        
+        let winner = self.players[winnerIndex]
+        let player1 = self.players[(winnerIndex + 1) % 3]
+        let player2 = self.players[(winnerIndex + 2) % 3]
+        player1.scoreText = "-10만냥"
+        player2.scoreText = "-10만냥"
+        
+        PopupManager.shared.showPopup(popupData: self.popupData, type: .chongtongWinner, cards: cards, players: [winner, player1, player2], completion: { _ in
             self.removeAllChildren()
         })
     }
@@ -402,7 +417,7 @@ class GameScene: SKScene, ObservableObject {
             case 1: // 매칭카드 1개
                 await self.moveDeckCardMatchingTableCardToPlayerChaptured(player: player, matchingTableCards: matchingTableCards)
             case 2: // 매칭카드 2개
-                PopupManager.shared.showPopup(popupData: self.popupData, type: .selectCard, cards: [deckCard] + matchingTableCards, players: [], completion: { select in
+                PopupManager.shared.showPopup(popupData: self.popupData, type: .selectCard, cards: [deckCard] + matchingTableCards, players: [player], completion: { select in
                     Task {
                         await self.moveDeckCardMatchingTableCardToPlayerChaptured(player: player, matchingTableCards: [self.popupData.cards[1]])
                         self.popupData.cards = []
@@ -411,7 +426,7 @@ class GameScene: SKScene, ObservableObject {
             case 3: // 매칭카드 3개
                 //TODO:  3개 인경우 한장씩 뺏기
                 let isPlayerFuckCard = player.fuckCardMonths.first(where: { $0 == deckCard.month }) != nil
-                PopupManager.shared.showPopup(popupData: self.popupData, type: isPlayerFuckCard ? .threeTableCardsWithPlayerFuck : .threeTableCards, cards: [deckCard] + matchingTableCards, players: [], completion: { _ in
+                PopupManager.shared.showPopup(popupData: self.popupData, type: isPlayerFuckCard ? .threeTableCardsWithPlayerFuck : .threeTableCards, cards: [deckCard] + matchingTableCards, players: [player], completion: { _ in
                     Task {
                         await self.moveDeckCardMatchingTableCardToPlayerChaptured(player: player, matchingTableCards: matchingTableCards)
                         await self.collectPiCardFromOtherPlayer(count: isPlayerFuckCard ? 2 : 1)
@@ -519,9 +534,7 @@ class GameScene: SKScene, ObservableObject {
         for (i, handCard) in handCards.enumerated() {
             guard let handCardNode = childNode(withName: handCard.id.uuidString) as? CardNode else { return }
             guard let matchingTableCardNode = childNode(withName: matchingTableCards.last!.id.uuidString) as? CardNode else { return }
-            player.handCards.removeAll { $0.id == handCard.id }
-            player.capture(card: handCard)
-            
+
             var matchPosition = matchingTableCardNode.position
             matchPosition.x += CGFloat(10 * i)
             matchPosition.y -= CGFloat(10 * i)
@@ -534,8 +547,10 @@ class GameScene: SKScene, ObservableObject {
         let cardIndexByType = player.getCapturedCardIndexByType(card: handCards[0])
         
         for (i, handCard) in handCards.enumerated() {
+            player.handCards.removeAll { $0.id == handCard.id }
+            player.capture(card: handCard)
             guard let handCardNode = childNode(withName: handCard.id.uuidString) as? CardNode else { return }
-            let movePosition = self.getPlayerCapturedCardPosition(playerIndex: player.index, cardIndexByType: cardIndexByType + i, cardType: handCard.type)
+            let movePosition = self.getPlayerCapturedCardPosition(playerIndex: player.index, cardIndexByType: cardIndexByType, cardType: handCard.type)
             handCardNode.moveAndTurnCard(movePosition: movePosition, duration: cardDuration, isFront: true, zPosition: cardIndexByType, afterCardNodeScale: .normal)
         }
         
@@ -825,17 +840,16 @@ class GameScene: SKScene, ObservableObject {
         return position
     }
     
-    private func setPlayer(playerIndex: Int) {
-        let player = players[playerIndex]
+    private func setPlayer(player: Player) {
         let cardHeightWithGap = self.cardSize.height + self.cardGap
         var startPosition: CGPoint = .zero // 좌측 하단이 시작점
-        let playerAreaNode = SKShapeNode(circleOfRadius: playerIndex == 0 ? self.size.width : self.size.width / 2 )
+        let playerAreaNode = SKShapeNode(circleOfRadius: player.index == 0 ? self.size.width : self.size.width / 2 )
         let playerLabelNode = SKLabelNode(fontNamed: "System")
-        playerLabelNode.name = "playerLabelNode_\(playerIndex)"
-        playerLabelNode.text = GameScene.playerNames[player.charactorIndex] + " (\(player.money)만냥)"
+        playerLabelNode.name = "playerLabelNode_\(player.index)"
+        playerLabelNode.text = player.name + " (\(player.money)만냥)"
         playerLabelNode.fontSize = 18
         
-        switch playerIndex {
+        switch player.index {
         case 1:
             startPosition.x = (self.size.width / 2) + self.cardGap
             startPosition.y = self.size.height - self.cardSize.height - self.cardGap
@@ -859,16 +873,16 @@ class GameScene: SKScene, ObservableObject {
         addChild(playerAreaNode)
 
         let playerImageNode = SKSpriteNode(imageNamed: player.imageName ?? "player_unkown")
-        playerImageNode.name = "playerImageNode_\(playerIndex)"
+        playerImageNode.name = "playerImageNode_\(player.index)"
         playerImageNode.size = self.playerImageSize
         let playerImageMaskPath = UIBezierPath(roundedRect: playerImageNode.frame, cornerRadius: self.cardSize.width / 2)
         let playerImageMaskNode = SKShapeNode(path: playerImageMaskPath.cgPath)
-        playerImageMaskNode.name = "playerImageMaskNode_\(playerIndex)"
+        playerImageMaskNode.name = "playerImageMaskNode_\(player.index)"
         playerImageMaskNode.fillColor = .black
         playerImageMaskNode.strokeColor = .white
         playerImageMaskNode.lineWidth = 2
         let playerImageCropNode = SKCropNode()
-        playerImageCropNode.name = "playerCropNode_\(playerIndex)"
+        playerImageCropNode.name = "playerCropNode_\(player.index)"
         playerImageCropNode.maskNode = playerImageMaskNode
         playerImageCropNode.addChild(playerImageNode)
         playerImageCropNode.position.x = startPosition.x + self.playerImageSize.height / 2
@@ -876,7 +890,7 @@ class GameScene: SKScene, ObservableObject {
         addChild(playerImageCropNode)
     
         playerLabelNode.position.x = startPosition.x + self.playerImageSize.width + playerLabelNode.bounds.width / 2
-        playerLabelNode.position.y = startPosition.y + (playerIndex == 0 ? 0.0 : self.playerImageSize.height / 2)
+        playerLabelNode.position.y = startPosition.y + (player.index == 0 ? 0.0 : self.playerImageSize.height / 2)
         self.addChild(playerLabelNode)
     }
     
@@ -885,9 +899,11 @@ class GameScene: SKScene, ObservableObject {
         let randomThree = range.shuffled()
         
         for i in 0...2 {
-            self.players[i].charactorIndex = randomThree[i]
+            let randomIndex = randomThree[i]
+            self.players[i].charactorIndex = randomIndex
+            self.players[i].name = GameScene.playerNames[randomIndex]
             self.players[i].imageName = "player_" + String(format: "%02d", randomThree[i])
-            self.setPlayer(playerIndex: i)
+            self.setPlayer(player: players[i])
         }
     }
     

@@ -5,8 +5,11 @@
 //  Created by Joey's Mac mini on 5/6/26.
 //
 
+import UIKit
+
 final class Player {
     let index: Int
+    var name: String = ""
     var imageName: String?
     var handCards: [Card] = []
     var capturedCardTypeGroup: [[Card]] = [[],[],[],[]]  // pi, dan, yeol, gwang

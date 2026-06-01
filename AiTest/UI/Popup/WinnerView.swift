@@ -60,16 +60,19 @@ public struct WinnerView: View {
                     Text(players[2].scoreText ?? "")
                         .font(.caption)
                 }
-                Button {
+                Button("확인") {
                     closeAction()
-                } label: {
-                    Text("확인")
-                        .font(.title)
                 }
+                .foregroundStyle(.white)
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(.green)
+                .clipShape(Capsule())
             }
-            .padding(10)
+            .padding(20)
             .background(.white.opacity(0.8))
-            .cornerRadius(10)
+            .cornerRadius(20)
         }
+        .presentationBackground(.black.opacity(0.2))
     }
 }

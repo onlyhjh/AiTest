@@ -1,5 +1,5 @@
 //
-//  OneSecMessageView.swift
+//  AutoCloseMessageView.swift.swift
 //  AiTest
 //
 //  Created by Joey's Mac mini on 5/26/26.
@@ -7,25 +7,38 @@
 
 import SwiftUI
 
-public struct OneSecMessageView: View {
+public struct AutoCloseMessageView: View {
     
+    let autoCloseTimeInterval: TimeInterval = 3.0
     var title: String?
     var message: String?
+    var players: [Player]
     var cards: [Card]
     
     // 😎 😭 🥶😱🤯😭😘🤩💀
-    init(title: String?, message: String?, cards: [Card]) {
+    init(title: String?, message: String?, players: [Player], cards: [Card], autoAction: @escaping () -> Void) {
         self.title = title
         self.message = message
+        self.players = players
         self.cards = cards
+        
+        DispatchQueue.main.asyncAfter(deadline:  .now() + autoCloseTimeInterval) {
+            autoAction()
+        }
     }
     
     public var body: some View {
         ZStack {
             VStack(spacing: 10) {
-                if let title = title {
-                    Text(title)
-                        .font(.title)
+                HStack(spacing: 10) {
+                    Image(players[0].imageName ?? "player_unkown")
+                        .resizable()
+                        .frame(width: 50, height: 50)
+                        .cornerRadius(25)
+                    if let title = title {
+                        Text(title)
+                            .font(.title)
+                    }
                 }
                 if let message = message {
                     Text(message)
@@ -40,9 +53,10 @@ public struct OneSecMessageView: View {
                     }
                 }
             }
-            .padding(10)
+            .padding(20)
             .background(.white.opacity(0.8))
-            .cornerRadius(10)
+            .cornerRadius(20)
         }
+        .presentationBackground(.black.opacity(0.2))
     }
 }

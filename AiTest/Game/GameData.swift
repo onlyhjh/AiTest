@@ -18,6 +18,7 @@ enum PopupStatus {
     case showSelectCardPopup
     case showAutoCloseMessagePopup
     case showWinnerPopup
+    case showChongTongWinnerPopup
     case showAlert
     case showSelectWavePopup
     case closePopup

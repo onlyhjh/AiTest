@@ -1,5 +1,5 @@
 //
-//  SelectWaveView.swift
+//  ChongTongWinnerView.swift
 //  AiTest
 //
 //  Created by Joey's Mac mini on 5/26/26.
@@ -7,39 +7,26 @@
 
 import SwiftUI
 
-public struct SelectWaveView: View {
-    
+public struct ChongTongWinnerView: View {
+
     var title: String?
     var message: String?
     var players: [Player]
     var cards: [Card]
-    var select1Action: (() -> Void)
-    var select2Action: (() -> Void)
-    var closeAction: (() -> Void)
+    var closeAction: () -> Void = { }
     
-    init(title: String?, message: String?, players: [Player], cards: [Card], select1Action: @escaping () -> Void, select2Action: @escaping () -> Void, closeAction: @escaping () -> Void) {
+    // 😎 😭 🥶😱🤯😭😘🤩💀
+    init(title: String?, message: String?, players: [Player], cards: [Card], closeAction: @escaping () -> Void) {
         self.title = title
         self.message = message
         self.players = players
         self.cards = cards
-        self.select1Action = select1Action
-        self.select2Action = select2Action
         self.closeAction = closeAction
     }
     
     public var body: some View {
         ZStack {
             VStack(spacing: 10) {
-//                HStack(spacing: 10) {
-//                    Spacer()
-//                    Button {
-//                        closeAction()
-//                    } label: {
-//                        Image(systemName: "xmark.circle.fill")
-//                                .font(.title)
-//                                .foregroundColor(.gray)
-//                    }
-//                }
                 HStack(spacing: 10) {
                     Image(players[0].imageName ?? "player_unkown")
                         .resizable()
@@ -62,17 +49,25 @@ public struct SelectWaveView: View {
                             .rotationEffect(.degrees(15 * Double(index % 2 == 0 ? 1 : -1)))
                     }
                 }
+                HStack(spacing: 10) {
+                    Image(players[1].imageName ?? "player_unkown")
+                        .resizable()
+                        .frame(width: 34, height: 34)
+                        .cornerRadius(17)
+                    Text(players[1].scoreText ?? "")
+                        .font(.caption)
+                }
+                HStack(spacing: 10) {
+                    Image(players[2].imageName ?? "player_unkown")
+                        .resizable()
+                        .frame(width: 34, height: 34)
+                        .cornerRadius(17)
+                    Text(players[2].scoreText ?? "")
+                        .font(.caption)
+                }
                 HStack(spacing: 20) {
-                    Button("흔들기") {
-                        select1Action()
-                    }
-                    .foregroundStyle(.white)
-                    .padding()
-                    .frame(width: 150)
-                    .background(.red)
-                    .clipShape(Capsule())
-                    Button("그냥치기") {
-                        select2Action()
+                    Button("확인") {
+                        closeAction()
                     }
                     .foregroundStyle(.white)
                     .padding()

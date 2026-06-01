@@ -46,6 +46,10 @@ struct MainContentView: View {
                         self.gameData.deckCards = DeckFactory().generateFullDeck()
                         self.gameData.gameStatus = .start
                     }
+                    .foregroundStyle(.white)
+                    .padding()
+                    .background(.green)
+                    .clipShape(Capsule())
                     Button("save") {
                         if !self.gameData.deckCards.isEmpty, let encoded = try? JSONEncoder().encode(self.gameData.deckCards) {
                                 UserDefaults.standard.set(encoded, forKey: "deckCards")
@@ -53,12 +57,20 @@ struct MainContentView: View {
                             self.isPresentedAlert = true
                         }
                     }
+                    .foregroundStyle(.white)
+                    .padding()
+                    .background(.red)
+                    .clipShape(Capsule())
                     Button("load") {
                         if let data = UserDefaults.standard.data(forKey: "deckCards"), let deckCards = try? JSONDecoder().decode([Card].self, from: data) {
                             self.gameData.deckCards = deckCards
                             self.gameData.gameStatus = .start
                         }
                     }
+                    .foregroundStyle(.white)
+                    .padding()
+                    .background(.pink)
+                    .clipShape(Capsule())
                 })
                 .padding(.all, 10)
             }
@@ -69,7 +81,7 @@ struct MainContentView: View {
         }, content: {
             switch self.popupData.status  {
             case .showSelectCardPopup:
-                SelectCardsView(title: self.popupData.title, message: self.popupData.message, cards: self.popupData.cards, select1Action: {
+                SelectCardsView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players, cards: self.popupData.cards, select1Action: {
                     isPresentedPopup = false
                     self.popupData.cards = [self.popupData.cards[0], self.popupData.cards[1]]
                     self.popupData.completion(0)
@@ -80,9 +92,8 @@ struct MainContentView: View {
                 }, closeAction: {
                     isPresentedPopup = false
                 })
-                .presentationBackground(.black.opacity(0.2))
             case .showSelectWavePopup:
-                SelectWaveView(title: self.popupData.title, message: self.popupData.message, cards: self.popupData.cards, select1Action: {
+                SelectWaveView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players, cards: self.popupData.cards, select1Action: {
                     isPresentedPopup = false
                     self.popupData.completion(0)
                 }, select2Action: {
@@ -92,12 +103,18 @@ struct MainContentView: View {
                 }, closeAction: {
                     isPresentedPopup = false
                 })
-                .presentationBackground(.black.opacity(0.2))
             case .showAutoCloseMessagePopup:
-                OneSecMessageView(title: self.popupData.title, message: self.popupData.message,cards: self.popupData.cards)
-                    .presentationBackground(.black.opacity(0.2))
+                AutoCloseMessageView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players,cards: self.popupData.cards, autoAction: {
+                    isPresentedPopup = false
+                    self.popupData.completion(0)
+                })
             case .showWinnerPopup:
                 WinnerView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players, closeAction: {
+                    isPresentedPopup = false
+                    self.popupData.completion(0)
+                })
+            case .showChongTongWinnerPopup:
+                ChongTongWinnerView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players, cards: self.popupData.cards, closeAction: {
                     isPresentedPopup = false
                     self.popupData.completion(0)
                 })
@@ -105,6 +122,9 @@ struct MainContentView: View {
                 EmptyView()
             }
         })
+        .transaction { transaction in
+            transaction.disablesAnimations = true
+        }
         .alert(self.alertMessage ?? "", isPresented: self.$isPresentedAlert) {
             Button("OK") { self.isPresentedAlert = false}
         }
@@ -118,14 +138,12 @@ struct MainContentView: View {
                 self.isPresentedPopup = true
             case .showSelectWavePopup:
                 self.isPresentedPopup = true
+            case .showChongTongWinnerPopup:
+                self.isPresentedPopup = true
             case .showWinnerPopup:
                 self.isPresentedPopup = true
             case .showAutoCloseMessagePopup:
                 self.isPresentedPopup = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                    isPresentedPopup = false
-                    popupData.completion(0)
-                }
             case .showAlert:
                 self.alertMessage = self.popupData.message
                 self.isPresentedAlert = true
