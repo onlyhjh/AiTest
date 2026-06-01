@@ -13,17 +13,15 @@ public struct SelectCardsView: View {
     var message: String?
     var players: [Player]
     var cards: [Card]
-    var select1Action: (() -> Void)
-    var select2Action: (() -> Void)
+    var buttonActions: [() -> Void]
     var closeAction: (() -> Void)
     
-    init(title: String?, message: String?, players: [Player], cards: [Card], select1Action: @escaping () -> Void, select2Action: @escaping () -> Void, closeAction: @escaping () -> Void) {
+    init(title: String?, message: String?, players: [Player], cards: [Card], buttonActions: [() -> Void], closeAction: @escaping () -> Void) {
         self.title = title
         self.message = message
         self.players = players
         self.cards = cards
-        self.select1Action = select1Action
-        self.select2Action = select2Action
+        self.buttonActions = buttonActions
         self.closeAction = closeAction
     }
     
@@ -58,20 +56,14 @@ public struct SelectCardsView: View {
                         .font(.caption)
                 }
                 HStack(spacing: 20) {
-                    Button {
-                        select1Action()
-                    } label: {
-                        Image(cards[1].imageName ?? "hwatu_back")
-                            .resizable()
-                            .frame(width: 50, height: 75)
-                    }
-                    
-                    Button {
-                        select2Action()
-                    } label: {
-                        Image(cards[2].imageName ?? "hwatu_back")
-                            .resizable()
-                            .frame(width: 50, height: 75)
+                    ForEach(1..<cards.count) { index in
+                        Button {
+                            buttonActions[index]()
+                        } label: {
+                            Image(cards[index].imageName ?? "hwatu_back")
+                                .resizable()
+                                .frame(width: 50, height: 75)
+                        }
                     }
                 }
             }

@@ -1,5 +1,5 @@
 //
-//  ChongTongWinnerView.swift
+//  SpecialWinView.swift
 //  AiTest
 //
 //  Created by Joey's Mac mini on 5/26/26.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-public struct ChongTongWinnerView: View {
+public struct SpecialWinView: View {
 
     var title: String?
     var message: String?

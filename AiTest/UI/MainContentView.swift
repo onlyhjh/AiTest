@@ -81,26 +81,29 @@ struct MainContentView: View {
         }, content: {
             switch self.popupData.status  {
             case .showSelectCardPopup:
-                SelectCardsView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players, cards: self.popupData.cards, select1Action: {
-                    isPresentedPopup = false
-                    self.popupData.cards = [self.popupData.cards[0], self.popupData.cards[1]]
-                    self.popupData.completion(0)
-                }, select2Action: {
-                    isPresentedPopup = false
-                    self.popupData.cards = [self.popupData.cards[0], self.popupData.cards[2]]
-                    self.popupData.completion(1)
-                }, closeAction: {
+                SelectCardsView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players, cards: self.popupData.cards, buttonActions: [
+                    {}, // 첫번째 카드는 이벤트 없음
+                    {
+                        isPresentedPopup = false
+                        self.popupData.cards = [self.popupData.cards[0], self.popupData.cards[1]]
+                        self.popupData.completion(0)
+                    }, {
+                        isPresentedPopup = false
+                        self.popupData.cards = [self.popupData.cards[0], self.popupData.cards[2]]
+                        self.popupData.completion(1)
+                    }
+                ], closeAction: {
                     isPresentedPopup = false
                 })
-            case .showSelectWavePopup:
-                SelectWaveView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players, cards: self.popupData.cards, select1Action: {
+            case .showSelectButtonPopup:
+                SelectButtonView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players, cards: self.popupData.cards, buttonTexts: self.popupData.buttonTexts, buttonActions: [{
                     isPresentedPopup = false
                     self.popupData.completion(0)
-                }, select2Action: {
+                }, {
                     isPresentedPopup = false
                     self.popupData.cards = [self.popupData.cards[0], self.popupData.cards[2]]
                     self.popupData.completion(1)
-                }, closeAction: {
+                }], closeAction: {
                     isPresentedPopup = false
                 })
             case .showAutoCloseMessagePopup:
@@ -108,13 +111,13 @@ struct MainContentView: View {
                     isPresentedPopup = false
                     self.popupData.completion(0)
                 })
-            case .showWinnerPopup:
+            case .showWinPopup:
                 WinnerView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players, closeAction: {
                     isPresentedPopup = false
                     self.popupData.completion(0)
                 })
-            case .showChongTongWinnerPopup:
-                ChongTongWinnerView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players, cards: self.popupData.cards, closeAction: {
+            case .showSpecialWinPopup:
+                SpecialWinView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players, cards: self.popupData.cards, closeAction: {
                     isPresentedPopup = false
                     self.popupData.completion(0)
                 })
@@ -136,11 +139,11 @@ struct MainContentView: View {
             switch self.popupStatus {
             case .showSelectCardPopup:
                 self.isPresentedPopup = true
-            case .showSelectWavePopup:
+            case .showSelectButtonPopup:
                 self.isPresentedPopup = true
-            case .showChongTongWinnerPopup:
+            case .showSpecialWinPopup:
                 self.isPresentedPopup = true
-            case .showWinnerPopup:
+            case .showWinPopup:
                 self.isPresentedPopup = true
             case .showAutoCloseMessagePopup:
                 self.isPresentedPopup = true

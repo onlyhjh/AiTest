@@ -259,7 +259,7 @@ class GameScene: SKScene, ObservableObject {
                         self.collectMoney(nyang: 10)
                     }
                     else if player.fuckCardMonths.count == 2 {
-                        PopupManager.shared.showPopup(popupData: self.popupData, type: .thirdFuck, cards: fuckCards, players: [player], completion: {_ in
+                        PopupManager.shared.showPopup(popupData: self.popupData, type: .thirdFuckWin, cards: fuckCards, players: [player], completion: {_ in
                             self.showWinnerPopup(winnerIndex: self.currentPlayerIndex)
                         })
                         self.collectMoney(nyang: 3)
@@ -379,7 +379,7 @@ class GameScene: SKScene, ObservableObject {
         player1.scoreText = "피박, 광박 -12만냥"
         player2.scoreText = "피박 -5만냥"
         
-        PopupManager.shared.showPopup(popupData: self.popupData, type: .winner, cards: [], players: [winner, player1, player2], message: "광3점, 피2점, 띠1점, 고1점 >  총점 25점" ,completion: { select in
+        PopupManager.shared.showPopup(popupData: self.popupData, type: .win, cards: [], players: [winner, player1, player2], message: "광3점, 피2점, 띠1점, 고1점 >  총점 25점" ,completion: { select in
             self.removeAllChildren()
         })
     }
@@ -393,7 +393,7 @@ class GameScene: SKScene, ObservableObject {
         player1.scoreText = "-10만냥"
         player2.scoreText = "-10만냥"
         
-        PopupManager.shared.showPopup(popupData: self.popupData, type: .chongtongWinner, cards: cards, players: [winner, player1, player2], completion: { _ in
+        PopupManager.shared.showPopup(popupData: self.popupData, type: .chongtongWin, cards: cards, players: [winner, player1, player2], completion: { _ in
             self.removeAllChildren()
         })
     }

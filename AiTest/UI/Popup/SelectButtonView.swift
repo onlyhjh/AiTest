@@ -1,5 +1,5 @@
 //
-//  SelectWaveView.swift
+//  SelectButtonView.swift
 //  AiTest
 //
 //  Created by Joey's Mac mini on 5/26/26.
@@ -7,23 +7,23 @@
 
 import SwiftUI
 
-public struct SelectWaveView: View {
+public struct SelectButtonView: View {
     
     var title: String?
     var message: String?
     var players: [Player]
     var cards: [Card]
-    var select1Action: (() -> Void)
-    var select2Action: (() -> Void)
+    var buttonTexts: [String]
+    let buttonActions: [() -> Void]
     var closeAction: (() -> Void)
     
-    init(title: String?, message: String?, players: [Player], cards: [Card], select1Action: @escaping () -> Void, select2Action: @escaping () -> Void, closeAction: @escaping () -> Void) {
+    init(title: String?, message: String?, players: [Player], cards: [Card], buttonTexts: [String], buttonActions: [() -> Void], closeAction: @escaping () -> Void) {
         self.title = title
         self.message = message
         self.players = players
         self.cards = cards
-        self.select1Action = select1Action
-        self.select2Action = select2Action
+        self.buttonTexts = buttonTexts
+        self.buttonActions = buttonActions
         self.closeAction = closeAction
     }
     
@@ -63,22 +63,16 @@ public struct SelectWaveView: View {
                     }
                 }
                 HStack(spacing: 20) {
-                    Button("흔들기") {
-                        select1Action()
+                    ForEach(0..<buttonTexts.count) { index in
+                        Button(buttonTexts[index]) {
+                            buttonActions[index]()
+                        }
+                        .foregroundStyle(.white)
+                        .padding()
+                        .frame(width: 150)
+                        .background(index % 2 == 0 ? .red : .green)
+                        .clipShape(Capsule())
                     }
-                    .foregroundStyle(.white)
-                    .padding()
-                    .frame(width: 150)
-                    .background(.red)
-                    .clipShape(Capsule())
-                    Button("그냥치기") {
-                        select2Action()
-                    }
-                    .foregroundStyle(.white)
-                    .padding()
-                    .frame(width: 150)
-                    .background(.green)
-                    .clipShape(Capsule())
                 }
             }
             .padding(20)

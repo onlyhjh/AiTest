@@ -8,20 +8,20 @@
 import SwiftUI
 
 enum PopupType {
-    case chongtongWinner // 총통 승리
-    case winner         // 승리
-    case ddadak         // 따닥
-    case selectCard     // 카드 선택
-    case selectWave     // 흔들기 선택
-    case threeTableCards// 3장 가져오기 (자뻑?)
+    case chongtongWin       // 총통 승리
+    case win                // 승리
+    case ddadak             // 따닥
+    case selectCard         // 카드 선택
+    case selectWave         // 흔들기 선택
+    case threeTableCards    // 3장 가져오기 (자뻑?)
     case threeTableCardsWithPlayerFuck // 자뻑 3장 가져오기
-    case wave           // 흔들기
-    case boom           // 폭탄
-    case kiss           // 쪽
-    case fuck           // 기본 뻑
-    case firstFuck      // 첫 뻑
-    case secondFuck     // 두번째 뻑 (첫뻑후)
-    case thirdFuck      // 세번 뻑
+    case wave               // 흔들기
+    case boom               // 폭탄
+    case kiss               // 쪽
+    case fuck               // 기본 뻑
+    case firstFuck          // 첫 뻑
+    case secondFuck         // 두번째 뻑 (첫뻑후)
+    case thirdFuckWin       // 세번 뻑승
 }
 class PopupManager {
     static var shared = PopupManager()
@@ -36,14 +36,18 @@ class PopupManager {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2){
             //print("Popup type: \(type)")
             switch type {
-            case .chongtongWinner:
+            case .chongtongWin:
                 popupData.title = "총통 승!!!"
                 popupData.message = "10만냥씩 줘~ 🥳"
-                popupData.status = .showChongTongWinnerPopup
-            case .winner:
+                popupData.status = .showSpecialWinPopup
+            case .win:
                 popupData.title = "아싸 승!!!"
                 popupData.message = message ?? "알아서 언넝 내놔~ 🥳"
-                popupData.status = .showWinnerPopup
+                popupData.status = .showWinPopup
+            case .thirdFuckWin:
+                popupData.title = "뻑 3번 승!!!"
+                popupData.message = "웃프게 이겼네.. 뭐여 이건~ 😂"
+                popupData.status = .showSpecialWinPopup
             case .selectCard:
                 popupData.title = "카드 선택!!!"
                 popupData.message = "가져올 카드를 선택하삼~ 🥸"
@@ -59,7 +63,8 @@ class PopupManager {
             case .selectWave:
                 popupData.title = "흔들기!!!"
                 popupData.message = "흔들까? 아님 그냥? 😵‍💫"
-                popupData.status = .showSelectWavePopup
+                popupData.status = .showSelectButtonPopup
+                popupData.buttonTexts = ["흔들기", "그냥치기"]
             case .wave:
                 popupData.title = "흔들었으!!!"
                 popupData.message = "어질어질 하지~ 😵‍💫"
@@ -75,10 +80,6 @@ class PopupManager {
             case .secondFuck:
                 popupData.title = "2연속 뻑!!!"
                 popupData.message = "대단하다~ 일단 따블로 6만냥씩 받자~ 😂"
-                popupData.status = .showAutoCloseMessagePopup
-            case .thirdFuck:
-                popupData.title = "뻑 3번 승!!!"
-                popupData.message = "웃프게 이겼네.. 뭐여 이건~ 😂"
                 popupData.status = .showAutoCloseMessagePopup
             case .ddadak:
                 popupData.title = "따닥!!!"
