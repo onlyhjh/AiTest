@@ -34,7 +34,7 @@ class PopupManager {
         popupData.status = .closePopup // 이미 팝업이 떠 있는 경우 닫아야함
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2){
-            //print("\(#function) Popup type: \(type)")
+            print("\(#function) Popup type: \(type)")
             switch type {
             case .chongtongWin:
                 popupData.title = "총통 승!!!"

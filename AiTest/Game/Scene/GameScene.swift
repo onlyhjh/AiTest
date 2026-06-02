@@ -92,15 +92,6 @@ class GameScene: SKScene, ObservableObject {
 //                }
 //            }
             
-            // Test 특정카드 사용자에게
-            for (i, card) in self.deckCards.enumerated().reversed() {
-                if card.type == .gwang && card.month == 3 && card.piNum == 0 {
-                    let element = self.deckCards.remove(at: i)
-                    self.deckCards.insert(element, at: 22)
-                    break
-                }
-            }
-            
             
             // 테이블에 첫번째 3장 나눠주기
             for _ in 0...2 {
@@ -138,6 +129,11 @@ class GameScene: SKScene, ObservableObject {
             let _ = await self.moveBonusTableCardToPlayerCapturedAndMoveDeckCardToTableAgain(playerIndex: self.currentPlayerIndex)
             // 총통 검사 1 (10점)
             self.checkChongTong()
+            
+            // 테스트 한장씩 뺏어오기 테스트
+            for i in 0...8 {
+                await self.moveDeckCardToPlayerCaptured(playerIndex: i % 3)
+            }
         }
     }
     
@@ -239,7 +235,7 @@ class GameScene: SKScene, ObservableObject {
                     PopupManager.shared.showPopup(popupData: self.popupData, type: .boom, cards: sameMonthPlayerHandCards, players: [player], completion: {_ in
                         Task{
                             await self.movePlayerHandCardsMatchingTableCardsToPlayerChaptured(player: player, handCards: sameMonthPlayerHandCards, matchingTableCards: matchingTableCards)
-                            await self.collectPiCardFromOtherPlayer(count: 1) {
+                            await self.collectPiCardsFromOthers(toPlayer: player, piCount: 2) {
                                 Task{
                                     await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(playerIndex: self.currentPlayerIndex)
                                     await self.flipDeckCardAfterBonusCard()
@@ -269,6 +265,7 @@ class GameScene: SKScene, ObservableObject {
                         PopupManager.shared.showPopup(popupData: self.popupData, type: .secondFuck, cards: fuckCards, players: [player], completion: {_ in })
                         self.collectMoney(nyang: 10)
                     }
+                    // 3번뻑 > 게임끝
                     else if player.fuckCardMonths.count == 2 {
                         PopupManager.shared.showPopup(popupData: self.popupData, type: .thirdFuckWin, cards: fuckCards, players: [player], completion: {_ in
                             self.showWinnerPopup(winnerIndex: self.currentPlayerIndex)
@@ -277,9 +274,7 @@ class GameScene: SKScene, ObservableObject {
                         return
                     }
                     else {
-                        PopupManager.shared.showPopup(popupData: self.popupData, type: .fuck, cards: fuckCards, players: [player], completion: {_ in
-                            self.showWinnerPopup(winnerIndex: self.currentPlayerIndex)
-                        })
+                        PopupManager.shared.showPopup(popupData: self.popupData, type: .fuck, cards: fuckCards, players: [player], completion: {_ in })
                     }
                     
                     player.fuckCardMonths.append(handCard.month)
@@ -312,7 +307,7 @@ class GameScene: SKScene, ObservableObject {
                 PopupManager.shared.showPopup(popupData: self.popupData, type: isPlayerFuckCard ? .threeTableCardsWithPlayerFuck : .threeTableCards, cards: [handCard] + matchingTableCards, players: [player], completion: { _ in
                     Task {
                         await self.movePlayerHandCardsMatchingTableCardsToPlayerChaptured(player: player, handCards: [handCard], matchingTableCards: matchingTableCards)
-                        await self.collectPiCardFromOtherPlayer(count: isPlayerFuckCard ? 2 : 1) {
+                        await self.collectPiCardsFromOthers(toPlayer: player, piCount: isPlayerFuckCard ? 2 : 1) {
                             Task{
                                 await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(playerIndex: self.currentPlayerIndex)
                                 await self.flipDeckCardAfterBonusCard()
@@ -362,9 +357,7 @@ class GameScene: SKScene, ObservableObject {
             if nextDeckCardExceptBonus.month == handCard.month && player.handCards.count > 0 {
                 PopupManager.shared.showPopup(popupData: popupData, type: .kiss, cards: [handCard, nextDeckCardExceptBonus], players: [player]) { select in
                     Task {
-                        await self.collectPiCardFromOtherPlayer(count: 1) {
-                            
-                        }
+                        await self.collectPiCardsFromOthers(toPlayer: player, piCount: 1) { }
                     }
                 }
             }
@@ -380,9 +373,12 @@ class GameScene: SKScene, ObservableObject {
     private func playWithThreeMatchingCard(player: Player, handCard: Card, nextDeckCardExceptBonus: Card) async {
     }
     
-    private func collectPiCardFromOtherPlayer(count: Int, completion: (() -> Void)) async {
-        print("\(#function) 가져올 피 \(count)장")
-        completion()
+    private func collectPiCardsFromOthers(toPlayer: Player, piCount: Int, completion: @escaping () -> Void) async {
+        print("\(#function) 가져올 피 \(piCount)장")
+        Task{
+            await self.moveOtherPlayersCapturedCardsToPlayerCaptured(toPlayer: toPlayer, piCount: piCount)
+            completion()
+        }
     }
     
     private func collectMoney(nyang: Int) {
@@ -448,7 +444,7 @@ class GameScene: SKScene, ObservableObject {
                 PopupManager.shared.showPopup(popupData: self.popupData, type: isPlayerFuckCard ? .threeTableCardsWithPlayerFuck : .threeTableCards, cards: [deckCard] + matchingTableCards, players: [player], completion: { _ in
                     Task {
                         await self.moveDeckCardMatchingTableCardsToPlayerChaptured(player: player, matchingTableCards: matchingTableCards)
-                        await self.collectPiCardFromOtherPlayer(count: isPlayerFuckCard ? 2 : 1) {
+                        await self.collectPiCardsFromOthers(toPlayer: player, piCount: isPlayerFuckCard ? 2 : 1) {
                             
                         }
                     }
@@ -660,6 +656,22 @@ class GameScene: SKScene, ObservableObject {
         }
     }
     
+    private func sortPlayerCapturedPiCards(player: Player) {
+        for capturedCard in player.capturedCardTypeGroup[0] {
+            guard let capturedCardNode = childNode(withName: capturedCard.id.uuidString) as? CardNode else { return }
+            let cardIndexByType = player.getCapturedCardIndexByType(card: capturedCard)
+            let movePosition = self.getPlayerCapturedCardPosition(playerIndex: player.index, cardIndexByType: cardIndexByType, cardType: capturedCard.type)
+            // 동일위치 다시 그리기 방지 (위치값 소숫점 미세하게 변경 무시)
+            if Int(movePosition.x) == Int(capturedCardNode.position.x) && Int(movePosition.y) == Int(capturedCardNode.position.y) {
+                //print("\(#function) same positioin \(i)")
+            }
+            else {
+                //print("\(#function) different positioin \(i) current(\(handCardNode.position.x),\(handCardNode.position.y)),target(\(movePosition.x),\(movePosition.y))")
+                capturedCardNode.moveAndTurnCard(movePosition: movePosition, duration: cardDuration, isFront: true, movingUpScale: nil, afterCardNodeScale: .normal)
+            }
+        }
+    }
+    
     // 테이블 카드가 보너스 카드인 경우(복수가능) > 덱카드 다시받기 > 다시받은 카드가 보너스카드인경우 재귀반복
     private func moveBonusTableCardToPlayerCapturedAndMoveDeckCardToTableAgain(playerIndex: Int) async  {
         var bounsCardCount = 0
@@ -717,6 +729,51 @@ class GameScene: SKScene, ObservableObject {
                 return
             }
         }
+    }
+
+    private func moveOtherPlayersCapturedCardsToPlayerCaptured(toPlayer: Player, piCount: Int) async  {
+        for (i, anotherPlayer) in self.players.enumerated() {
+            if anotherPlayer.index == toPlayer.index { continue }
+            
+            let doublePi: Card? = anotherPlayer.capturedCardTypeGroup[3].last{ $0.isDoublePi == true }
+            let onePis: [Card] = anotherPlayer.capturedCardTypeGroup[3].filter{ $0.isDoublePi == false }.suffix(2) // 뒤에 쌍피가 아닌 일반피 두개 가져오기
+            
+            var movingCards: [Card] = []
+            
+            switch piCount {
+            case 1: // 피가 한개있으면 가져오고 없으면 쌍피가져오기
+                if let onePi = onePis.last {
+                    movingCards.append(onePi)
+                }
+                else if let pi2 = doublePi {
+                    movingCards.append(pi2)
+                }
+            case 2: // 쌍피 있으면 가져오고 없으면 피 두개 가져오기
+                if let pi2 = doublePi {
+                    movingCards.append(pi2)
+                }
+                else {
+                    movingCards = onePis
+                }
+            default :
+                break
+            }
+            
+            for movingCard in movingCards {
+                anotherPlayer.capturedCardTypeGroup[3].removeAll { $0.id == movingCard.id }
+                toPlayer.capture(card: movingCard)
+                
+                guard let deckCardNode = childNode(withName: movingCard.id.uuidString) as? CardNode else { return  }
+                let cardIndexByType = toPlayer.getCapturedCardIndexByType(card: movingCard)
+                let movePosition = self.getPlayerCapturedCardPosition(playerIndex: toPlayer.index, cardIndexByType: cardIndexByType, cardType: movingCard.type)
+                deckCardNode.moveAndTurnCard(movePosition: movePosition, duration: cardDuration, isFront: true, zPosition: cardIndexByType, afterCardNodeScale: .normal)
+            }
+            
+            self.sortPlayerCapturedPiCards(player: anotherPlayer)
+        }
+        
+        do { try await Task.sleep(for: .seconds(cardDuration))
+        } catch { print("error: \(error)")}
     }
     
     private func moveBonusDeckCardsToTable(tableGroupIndex: Int) async  {
