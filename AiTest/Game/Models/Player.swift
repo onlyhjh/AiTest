@@ -12,7 +12,7 @@ final class Player {
     var name: String = ""
     var imageName: String?
     var handCards: [Card] = []
-    var capturedCardTypeGroup: [[Card]] = [[],[],[],[]]  // pi, dan, yeol, gwang
+    var capturedCardTypeGroup: [[Card]] = [[],[],[],[]]  // 0 gwang, 1 yeol, 2 dan, 3 pi
     var money: Int = 1000
     var goCount: Int = 0
     var charactorIndex: Int = 0

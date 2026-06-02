@@ -162,7 +162,7 @@ class GameScene: SKScene, ObservableObject {
                 let sameMonthCards = player.handCards.filter({$0.month == handCard.month})
                 
                 if player.handCards.count == 7 && sameMonthCards.count == 4 {
-                    self.showChongTongWinnerPopup(winnerIndex: i, cards: sameMonthCards)
+                    self.showChongTongWinPopup(winnerIndex: i, cards: sameMonthCards)
                     self.collectMoney(nyang: 10)
                     return
                 }
@@ -267,9 +267,7 @@ class GameScene: SKScene, ObservableObject {
                     }
                     // 3번뻑 > 게임끝
                     else if player.fuckCardMonths.count == 2 {
-                        PopupManager.shared.showPopup(popupData: self.popupData, type: .thirdFuckWin, cards: fuckCards, players: [player], completion: {_ in
-                            self.showWinnerPopup(winnerIndex: self.currentPlayerIndex)
-                        })
+                        self.showThirdFuckWinPopup(winnerIndex: self.currentPlayerIndex, cards: fuckCards)
                         self.collectMoney(nyang: 3)
                         return
                     }
@@ -385,7 +383,7 @@ class GameScene: SKScene, ObservableObject {
         print("\(#function) 가져올 돈 \(nyang)만냥")
     }
     
-    private func showWinnerPopup(winnerIndex: Int) {
+    private func showWinPopup(winnerIndex: Int) {
         self.winnerIndex = winnerIndex
         
         let winner = self.players[winnerIndex]
@@ -399,7 +397,7 @@ class GameScene: SKScene, ObservableObject {
         })
     }
     
-    private func showChongTongWinnerPopup(winnerIndex: Int, cards: [Card]) {
+    private func showChongTongWinPopup(winnerIndex: Int, cards: [Card]) {
         self.winnerIndex = winnerIndex
         
         let winner = self.players[winnerIndex]
@@ -409,6 +407,20 @@ class GameScene: SKScene, ObservableObject {
         player2.scoreText = "-10만냥"
         
         PopupManager.shared.showPopup(popupData: self.popupData, type: .chongtongWin, cards: cards, players: [winner, player1, player2], completion: { _ in
+            self.removeAllChildren()
+        })
+    }
+    
+    private func showThirdFuckWinPopup(winnerIndex: Int, cards: [Card]) {
+        self.winnerIndex = winnerIndex
+        
+        let winner = self.players[winnerIndex]
+        let player1 = self.players[(winnerIndex + 1) % 3]
+        let player2 = self.players[(winnerIndex + 2) % 3]
+        player1.scoreText = "-3만냥"
+        player2.scoreText = "-3만냥"
+        
+        PopupManager.shared.showPopup(popupData: self.popupData, type: .thirdFuckWin, cards: cards, players: [winner, player1, player2], completion: { _ in
             self.removeAllChildren()
         })
     }
@@ -657,7 +669,7 @@ class GameScene: SKScene, ObservableObject {
     }
     
     private func sortPlayerCapturedPiCards(player: Player) {
-        for capturedCard in player.capturedCardTypeGroup[0] {
+        for capturedCard in player.capturedCardTypeGroup[3] {
             guard let capturedCardNode = childNode(withName: capturedCard.id.uuidString) as? CardNode else { return }
             let cardIndexByType = player.getCapturedCardIndexByType(card: capturedCard)
             let movePosition = self.getPlayerCapturedCardPosition(playerIndex: player.index, cardIndexByType: cardIndexByType, cardType: capturedCard.type)
