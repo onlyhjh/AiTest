@@ -41,7 +41,7 @@ class CardNode: SKSpriteNode {
         var sequnce: [SKAction] = []
         if let mus = movingUpScale {
             let halfPosition = CGPoint(x: movePosition.x - ((movePosition.x - self.position.x) / 2), y: movePosition.y - ((movePosition.y - self.position.y) / 2))
-            //print("halfPosition: \(halfPosition) = movePosition: \(movePosition) - self.position: \(self.position)  ")
+            //print("\(#function) halfPosition: \(halfPosition) = movePosition: \(movePosition) - self.position: \(self.position)  ")
             let move1Action = SKAction.move(to: halfPosition, duration: duration / 2)
             let scaleUpAction = SKAction.scale(to: mus.rawValue, duration: duration / 2)
             let moveWithScaleUpAction = SKAction.group([move1Action, scaleUpAction])
@@ -54,7 +54,7 @@ class CardNode: SKSpriteNode {
         }
         else {
             let moveAction = SKAction.move(to: movePosition, duration: duration)
-            //print("???? scale compare 1:\(afterCardNodeScale.rawValue) <> 2:\(self.xScale)")
+            //print("?\(#function) ??? scale compare 1:\(afterCardNodeScale.rawValue) <> 2:\(self.xScale)")
             if afterCardNodeScale.rawValue == self.xScale  {
                 sequnce = [moveAction]
             }

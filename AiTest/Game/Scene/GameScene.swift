@@ -58,7 +58,7 @@ class GameScene: SKScene, ObservableObject {
     
     // 매 프레임마다 SwiftUI로부터 온 데이터를 감지하고 적용
     override func update(_ currentTime: TimeInterval) {
-        //print("update gameStatus: \(gameData.gameStatus)")
+        //print("\(#function) update gameStatus: \(gameData.gameStatus)")
         switch self.gameData.gameStatus {
         case .start:
             self.startGame()
@@ -83,14 +83,23 @@ class GameScene: SKScene, ObservableObject {
 //            }
 //            return
             
-            // Test 특정카드 사용자에게
+//            // Test 특정카드 사용자에게
 //            for (i, card) in self.deckCards.enumerated().reversed() {
-//                if card.type == .pi && card.month == 7 && card.piNum == 0 {
+//                if card.type == .gwang && card.month == 3 && card.piNum == 0 {
 //                    let element = self.deckCards.remove(at: i)
 //                    self.deckCards.insert(element, at: 25)
 //                    break
 //                }
 //            }
+            
+            // Test 특정카드 사용자에게
+            for (i, card) in self.deckCards.enumerated().reversed() {
+                if card.type == .gwang && card.month == 3 && card.piNum == 0 {
+                    let element = self.deckCards.remove(at: i)
+                    self.deckCards.insert(element, at: 22)
+                    break
+                }
+            }
             
             
             // 테이블에 첫번째 3장 나눠주기
@@ -194,7 +203,7 @@ class GameScene: SKScene, ObservableObject {
             
             // 매칭카드가 갯수에 따른 처리
             let matchingTableCards = self.getMatchingTableCards(cardMonth: handCard.month)
-            print("handCard : \(handCard.month), \(handCard.type), nextDeckCardExceptBonus: \(nextDeckCardExceptBonus.month), \(nextDeckCardExceptBonus.type)")
+            print("\(#function) handCard: \(handCard.month), \(handCard.type), nextDeckCardExceptBonus: \(nextDeckCardExceptBonus.month), \(nextDeckCardExceptBonus.type)")
             for card in matchingTableCards {
                 print("... matchingTableCard: \(card.month), \(card.type)")
             }
@@ -209,7 +218,6 @@ class GameScene: SKScene, ObservableObject {
                             player.waveCount += 1
                             //  흔들기 확인 팝업 다시 보이기
                             PopupManager.shared.showPopup(popupData: self.popupData, type: .wave, cards: sameMonthPlayerHandCards, players: [player]) { select in
-                                print("??????? select: \(select)")
                                 Task{
                                     await self.playWithNoMatchingCard(player: player, handCard: handCard, nextDeckCardExceptBonus: nextDeckCardExceptBonus)
                                 }
@@ -231,10 +239,13 @@ class GameScene: SKScene, ObservableObject {
                     PopupManager.shared.showPopup(popupData: self.popupData, type: .boom, cards: sameMonthPlayerHandCards, players: [player], completion: {_ in
                         Task{
                             await self.movePlayerHandCardsMatchingTableCardsToPlayerChaptured(player: player, handCards: sameMonthPlayerHandCards, matchingTableCards: matchingTableCards)
-                            await self.collectPiCardFromOtherPlayer(count: 1)
-                            await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(playerIndex: self.currentPlayerIndex)
-                            await self.flipDeckCardAfterBonusCard()
-                            await self.setEmptyPlayerHandCards(player: player, count: 2)
+                            await self.collectPiCardFromOtherPlayer(count: 1) {
+                                Task{
+                                    await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(playerIndex: self.currentPlayerIndex)
+                                    await self.flipDeckCardAfterBonusCard()
+                                    await self.setEmptyPlayerHandCards(player: player, count: 2)
+                                }
+                            }
                         }
                     })
                 }
@@ -301,7 +312,12 @@ class GameScene: SKScene, ObservableObject {
                 PopupManager.shared.showPopup(popupData: self.popupData, type: isPlayerFuckCard ? .threeTableCardsWithPlayerFuck : .threeTableCards, cards: [handCard] + matchingTableCards, players: [player], completion: { _ in
                     Task {
                         await self.movePlayerHandCardsMatchingTableCardsToPlayerChaptured(player: player, handCards: [handCard], matchingTableCards: matchingTableCards)
-                        await self.collectPiCardFromOtherPlayer(count: isPlayerFuckCard ? 2 : 1)
+                        await self.collectPiCardFromOtherPlayer(count: isPlayerFuckCard ? 2 : 1) {
+                            Task{
+                                await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(playerIndex: self.currentPlayerIndex)
+                                await self.flipDeckCardAfterBonusCard()
+                            }
+                        }
                     }
                 })
             default: break
@@ -346,7 +362,9 @@ class GameScene: SKScene, ObservableObject {
             if nextDeckCardExceptBonus.month == handCard.month && player.handCards.count > 0 {
                 PopupManager.shared.showPopup(popupData: popupData, type: .kiss, cards: [handCard, nextDeckCardExceptBonus], players: [player]) { select in
                     Task {
-                        await self.collectPiCardFromOtherPlayer(count: 1)
+                        await self.collectPiCardFromOtherPlayer(count: 1) {
+                            
+                        }
                     }
                 }
             }
@@ -362,12 +380,13 @@ class GameScene: SKScene, ObservableObject {
     private func playWithThreeMatchingCard(player: Player, handCard: Card, nextDeckCardExceptBonus: Card) async {
     }
     
-    private func collectPiCardFromOtherPlayer(count: Int) async {
-        print("가져올 피 \(count)장")
+    private func collectPiCardFromOtherPlayer(count: Int, completion: (() -> Void)) async {
+        print("\(#function) 가져올 피 \(count)장")
+        completion()
     }
     
     private func collectMoney(nyang: Int) {
-        print("가져올 돈 \(nyang)만냥")
+        print("\(#function) 가져올 돈 \(nyang)만냥")
     }
     
     private func showWinnerPopup(winnerIndex: Int) {
@@ -406,20 +425,20 @@ class GameScene: SKScene, ObservableObject {
         Task {
             // 매칭카드가 갯수에 따른 처리
             let matchingTableCards = self.getMatchingTableCards(cardMonth: deckCard.month)
-//            print("deckCard : \(deckCard.month), \(deckCard.type)")
-//            for card in matchingTableCards {
-//                print("... matchingTableCard: \(card.month), \(card.type)")
-//            }
+            print("\(#function) deckCard: \(deckCard.month), \(deckCard.type)")
+            for card in matchingTableCards {
+                print("... matchingTableCard: \(card.month), \(card.type)")
+            }
             
             switch matchingTableCards.count {
             case 0: // 매칭카드 없는 경우
                 await self.moveDeckCardToTable()
             case 1: // 매칭카드 1개
-                await self.moveDeckCardMatchingTableCardToPlayerChaptured(player: player, matchingTableCards: matchingTableCards)
+                await self.moveDeckCardMatchingTableCardsToPlayerChaptured(player: player, matchingTableCards: matchingTableCards)
             case 2: // 매칭카드 2개
                 PopupManager.shared.showPopup(popupData: self.popupData, type: .selectCard, cards: [deckCard] + matchingTableCards, players: [player], completion: { select in
                     Task {
-                        await self.moveDeckCardMatchingTableCardToPlayerChaptured(player: player, matchingTableCards: [self.popupData.cards[1]])
+                        await self.moveDeckCardMatchingTableCardsToPlayerChaptured(player: player, matchingTableCards: [self.popupData.cards[1]])
                         self.popupData.cards = []
                     }
                 })
@@ -428,8 +447,10 @@ class GameScene: SKScene, ObservableObject {
                 let isPlayerFuckCard = player.fuckCardMonths.first(where: { $0 == deckCard.month }) != nil
                 PopupManager.shared.showPopup(popupData: self.popupData, type: isPlayerFuckCard ? .threeTableCardsWithPlayerFuck : .threeTableCards, cards: [deckCard] + matchingTableCards, players: [player], completion: { _ in
                     Task {
-                        await self.moveDeckCardMatchingTableCardToPlayerChaptured(player: player, matchingTableCards: matchingTableCards)
-                        await self.collectPiCardFromOtherPlayer(count: isPlayerFuckCard ? 2 : 1)
+                        await self.moveDeckCardMatchingTableCardsToPlayerChaptured(player: player, matchingTableCards: matchingTableCards)
+                        await self.collectPiCardFromOtherPlayer(count: isPlayerFuckCard ? 2 : 1) {
+                            
+                        }
                     }
                 })
             default: break
@@ -452,7 +473,7 @@ class GameScene: SKScene, ObservableObject {
         } catch { print("error: \(error)")}
     }
     
-    private func moveDeckCardMatchingTableCardToPlayerChaptured(player: Player, matchingTableCards: [Card]) async {
+    private func moveDeckCardMatchingTableCardsToPlayerChaptured(player: Player, matchingTableCards: [Card]) async {
         let deckCard = deckCards.removeLast()
         let tableGroupIndex = self.getTableCardGroupIndex(cardMonth: matchingTableCards.last!.month)
         player.capture(card: deckCard)
@@ -474,7 +495,7 @@ class GameScene: SKScene, ObservableObject {
         for matchingTableCard in matchingTableCards {
             self.removeTableCard(card: matchingTableCard)
             player.capture(card: matchingTableCard)
-
+            guard let matchingTableCardNode = childNode(withName: matchingTableCard.id.uuidString) as? CardNode else { return }
             let cardIndexByType = player.getCapturedCardIndexByType(card: matchingTableCard)
             let movePosition = self.getPlayerCapturedCardPosition(playerIndex: player.index, cardIndexByType: cardIndexByType, cardType: matchingTableCard.type)
             matchingTableCardNode.moveAndTurnCard(movePosition: movePosition, duration: cardDuration, isFront: true, zPosition: cardIndexByType, afterCardNodeScale: .normal)
@@ -630,10 +651,10 @@ class GameScene: SKScene, ObservableObject {
             let movePosition = self.getPlayerHandCardPosition(playerIndex: playerIndex, cardIndex: i)
             // 동일위치 다시 그리기 방지 (위치값 소숫점 미세하게 변경 무시)
             if Int(movePosition.x) == Int(handCardNode.position.x) && Int(movePosition.y) == Int(handCardNode.position.y) {
-                //print("same positioin \(i)")
+                //print("\(#function) same positioin \(i)")
             }
             else {
-                //print("different positioin \(i) current(\(handCardNode.position.x),\(handCardNode.position.y)),target(\(movePosition.x),\(movePosition.y))")
+                //print("\(#function) different positioin \(i) current(\(handCardNode.position.x),\(handCardNode.position.y)),target(\(movePosition.x),\(movePosition.y))")
                 handCardNode.moveAndTurnCard(movePosition: movePosition, duration: cardDuration, isFront: playerIndex == 0, movingUpScale: nil, afterCardNodeScale: playerIndex == 0 ? .large : .small)
             }
         }
@@ -791,7 +812,7 @@ class GameScene: SKScene, ObservableObject {
     }
     
     private func getTableCardPosition(groupIndex: Int, cardIndexByGroup: Int) -> CGPoint {
-        //print("getTableCardPosition: \(groupIndex), \(cardIndexByGroup)")
+        //print("\(#function): \(groupIndex), \(cardIndexByGroup)")
         let centerX = size.width / 2
         let cardWidthWithGap = self.cardSize.width * CardNodeScale.large.rawValue + self.cardGap
         let sp = CGFloat(cardIndexByGroup) * self.cardLayeredGap * CardNodeScale.large.rawValue
@@ -817,7 +838,7 @@ class GameScene: SKScene, ObservableObject {
             startPosition.y = playerLabelNode.position.y - (self.cardSize.height * cardNodeScale) - self.cardGap
         }
         else {
-            print("empty childNode: playerLabelNode_\(playerIndex)")
+            print("\(#function) empty childNode: playerLabelNode_\(playerIndex)")
             startPosition.x = (playerIndex == 2 ? 0.0 : self.size.width / 2) + self.cardGap
             startPosition.y = size.height + (cardSize.height / 2) - self.cardGap
         }
@@ -829,7 +850,7 @@ class GameScene: SKScene, ObservableObject {
     }
     
     private func getPlayerCapturedCardPosition(playerIndex: Int, cardIndexByType: Int, cardType: CardType) -> CGPoint {
-        print("cardIndexByType: \(cardIndexByType), cardType: \(cardType)")
+        print("\(#function) cardIndexByType: \(cardIndexByType), cardType: \(cardType)")
         let cardHeightWithGap = self.cardSize.height + self.cardGap
         var startPosition: CGPoint = .zero // 좌측 하단이 시작점
         startPosition.x = (playerIndex == 1 ? self.size.width / 2 : 0.0) + self.playerImageSize.width + (self.cardGap * 2)
@@ -919,7 +940,7 @@ class GameScene: SKScene, ObservableObject {
                     self.playWithSelectedHandCard(handCard: handCard)
                 }
                 else {
-                    print("not your turn nor your card")
+                    print("\(#function) not your turn nor your card")
                 }
             }
         }

@@ -50,7 +50,7 @@ struct MainContentView: View {
                     .padding()
                     .background(.green)
                     .clipShape(Capsule())
-                    Button("save") {
+                    Button("save1") {
                         if !self.gameData.deckCards.isEmpty, let encoded = try? JSONEncoder().encode(self.gameData.deckCards) {
                                 UserDefaults.standard.set(encoded, forKey: "deckCards")
                             self.alertMessage = "save success"
@@ -61,7 +61,18 @@ struct MainContentView: View {
                     .padding()
                     .background(.red)
                     .clipShape(Capsule())
-                    Button("load") {
+                    Button("save2") {
+                        if !self.gameData.deckCards.isEmpty, let encoded = try? JSONEncoder().encode(self.gameData.deckCards) {
+                                UserDefaults.standard.set(encoded, forKey: "deckCards2")
+                            self.alertMessage = "save success"
+                            self.isPresentedAlert = true
+                        }
+                    }
+                    .foregroundStyle(.white)
+                    .padding()
+                    .background(.red)
+                    .clipShape(Capsule())
+                    Button("load1") {
                         if let data = UserDefaults.standard.data(forKey: "deckCards"), let deckCards = try? JSONDecoder().decode([Card].self, from: data) {
                             self.gameData.deckCards = deckCards
                             self.gameData.gameStatus = .start
@@ -69,7 +80,17 @@ struct MainContentView: View {
                     }
                     .foregroundStyle(.white)
                     .padding()
-                    .background(.pink)
+                    .background(.blue)
+                    .clipShape(Capsule())
+                    Button("load2") {
+                        if let data = UserDefaults.standard.data(forKey: "deckCards2"), let deckCards = try? JSONDecoder().decode([Card].self, from: data) {
+                            self.gameData.deckCards = deckCards
+                            self.gameData.gameStatus = .start
+                        }
+                    }
+                    .foregroundStyle(.white)
+                    .padding()
+                    .background(.blue)
                     .clipShape(Capsule())
                 })
                 .padding(.all, 10)
@@ -132,7 +153,7 @@ struct MainContentView: View {
             Button("OK") { self.isPresentedAlert = false}
         }
         .onChange(of: popupData.status) {
-            print("change popupStatus: \(popupData.status)")
+            print("\(#function) change popupStatus: \(popupData.status)")
             if self.popupStatus == popupData.status { return }
             self.popupStatus = popupData.status
             
