@@ -13,6 +13,7 @@ enum PopupType {
     case ddadak             // 따닥
     case selectCard         // 카드 선택
     case selectWave         // 흔들기 선택
+    case selectGukjin       // 국진 선택
     case threeTableCards    // 3장 가져오기 (자뻑?)
     case threeTableCardsWithPlayerFuck // 자뻑 3장 가져오기
     case wave               // 흔들기
@@ -65,6 +66,11 @@ class PopupManager {
                 popupData.message = "흔들까? 아님 그냥? 😵‍💫"
                 popupData.status = .showSelectButtonPopup
                 popupData.buttonTexts = ["흔들기", "그냥치기"]
+            case .selectGukjin:
+                popupData.title = "국진 쌍피 선택!!!"
+                popupData.message = "쌍피로 쓸까? 🥸"
+                popupData.status = .showSelectButtonPopup
+                popupData.buttonTexts = ["쌍피로", "열끗으로"]
             case .wave:
                 popupData.title = "흔들었으!!!"
                 popupData.message = "어질어질 하지~ 😵‍💫"

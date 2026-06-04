@@ -59,11 +59,13 @@ final class Player {
         self.index = index
     }
     
-    func capture(card: Card) {
-        self.capturedCardTypeGroup[card.type.rawValue].append(card)
+    // 국진일 경우 type 강제 할당
+    func capture(card: Card, forcedType: CardType? = nil) {
+        self.capturedCardTypeGroup[forcedType?.rawValue ?? card.type.rawValue].append(card)
     }
     
-    func getCapturedCardIndexByType(card: Card) -> Int {
-        return self.capturedCardTypeGroup[card.type.rawValue].firstIndex{ c in c.id == card.id } ?? 0
+    // 국진일 경우 type 강제 할당
+    func getCapturedCardIndexByType(card: Card, forcedType: CardType? = nil) -> Int {
+        return self.capturedCardTypeGroup[forcedType?.rawValue ?? card.type.rawValue].firstIndex{ c in c.id == card.id } ?? 0
     }
 }
