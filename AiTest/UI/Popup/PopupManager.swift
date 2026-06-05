@@ -14,8 +14,8 @@ enum PopupType {
     case selectCard         // 카드 선택
     case selectWave         // 흔들기 선택
     case selectGukjin       // 국진 선택
-    case threeTableCards    // 3장 가져오기 (자뻑?)
-    case threeTableCardsWithPlayerFuck // 자뻑 3장 가져오기
+    case threeTableCards    // 한번에 3장 가져오기
+    case threeTableCardsWithPlayerFuck // 자뻑 (한번에 3장 가져오기)
     case wave               // 흔들기
     case boom               // 폭탄
     case kiss               // 쪽
@@ -92,12 +92,12 @@ class PopupManager {
                 popupData.message = "피 한장씩 내놔~ 🤩"
                 popupData.status = .showAutoCloseMessagePopup
             case .threeTableCards:
-                popupData.title = "아싸 한번에 3장!!!"
+                popupData.title = "아싸 쌩큐!!!"
                 popupData.message = "피 한장씩 내놔~ 🥳"
                 popupData.status = .showAutoCloseMessagePopup
             case .threeTableCardsWithPlayerFuck:
-                popupData.title = "아싸 자뻑 3장!!!"
-                popupData.message = "자뻑인거 알지? 피 두장씩 내놔~ 🥳"
+                popupData.title = "아싸 자뻑이었던거 알지!!!"
+                popupData.message = "피 두장씩 내놔~ 🥳"
                 popupData.status = .showAutoCloseMessagePopup
             default:
                 break

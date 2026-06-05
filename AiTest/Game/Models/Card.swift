@@ -11,8 +11,8 @@ import UIKit
 
 enum CardType: Int, Codable {
     case gwang = 0 // 광
-    case animal = 1  // (10)끗
-    case dan = 2    // 단(띠)
+    case yeol = 1  // 열끗
+    case tti = 2    // 띠
     case pi = 3     // 피
 }
 

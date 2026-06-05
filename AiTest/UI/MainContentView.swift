@@ -122,7 +122,6 @@ struct MainContentView: View {
                     self.popupData.completion(0)
                 }, {
                     isPresentedPopup = false
-                    self.popupData.cards = [self.popupData.cards[0], self.popupData.cards[2]]
                     self.popupData.completion(1)
                 }], closeAction: {
                     isPresentedPopup = false

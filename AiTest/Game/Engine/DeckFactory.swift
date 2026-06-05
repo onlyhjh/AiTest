@@ -23,70 +23,70 @@ class DeckFactory {
                 deck += [
                     Card(month: 1, type: .gwang),
                     Card(month: 1, type: .pi, piNum: 0),
-                    Card(month: 1, type: .dan, isHongDan: true),
+                    Card(month: 1, type: .tti, isHongDan: true),
                     Card(month: 1, type: .pi, piNum: 1)
                 ]
             case 2:
                 deck += [
                     Card(month: 2, type: .pi, piNum: 0),
-                    Card(month: 2, type: .animal, isGodori: true),
-                    Card(month: 2, type: .dan, isHongDan: true),
+                    Card(month: 2, type: .yeol, isGodori: true),
+                    Card(month: 2, type: .tti, isHongDan: true),
                     Card(month: 2, type: .pi, piNum: 1)
                 ]
             case 3:
                 deck += [
                     Card(month: 3, type: .gwang),
                     Card(month: 3, type: .pi, piNum: 0),
-                    Card(month: 3, type: .dan, isHongDan: true),
+                    Card(month: 3, type: .tti, isHongDan: true),
                     Card(month: 3, type: .pi, piNum: 1)
                 ]
             case 4:
                 deck += [
                     Card(month: 4, type: .pi, piNum: 0),
-                    Card(month: 4, type: .animal, isGodori: true),
-                    Card(month: 4, type: .dan, isChoDan: true),
+                    Card(month: 4, type: .yeol, isGodori: true),
+                    Card(month: 4, type: .tti, isChoDan: true),
                     Card(month: 4, type: .pi, piNum: 1)
                 ]
             case 5:
                 deck += [
                     Card(month: 5, type: .pi, piNum: 0),
-                    Card(month: 5, type: .animal),
-                    Card(month: 5, type: .dan, isChoDan: true),
+                    Card(month: 5, type: .yeol),
+                    Card(month: 5, type: .tti, isChoDan: true),
                     Card(month: 5, type: .pi, piNum: 1)
                 ]
             case 6:
                 deck += [
                     Card(month: 6, type: .pi, piNum: 0),
-                    Card(month: 6, type: .animal),
-                    Card(month: 6, type: .dan, isChungDan: true),
+                    Card(month: 6, type: .yeol),
+                    Card(month: 6, type: .tti, isChungDan: true),
                     Card(month: 6, type: .pi, piNum: 1)
                 ]
             case 7:
                 deck += [
                     Card(month: 7, type: .pi, piNum: 0),
-                    Card(month: 7, type: .animal),
-                    Card(month: 7, type: .dan, isChoDan: true),
+                    Card(month: 7, type: .yeol),
+                    Card(month: 7, type: .tti, isChoDan: true),
                     Card(month: 7, type: .pi, piNum: 1)
                 ]
             case 8:
                 deck += [
                     Card(month: 8, type: .gwang),
-                    Card(month: 8, type: .animal, isGodori: true),
+                    Card(month: 8, type: .yeol, isGodori: true),
                     Card(month: 8, type: .pi, piNum: 0),
                     Card(month: 8, type: .pi, piNum: 1)
                 ]
             case 9:
                 deck += [
                     Card(month: 9, type: .pi, piNum: 0),
-                    Card(month: 9, type: .animal, isDoublePi: true),
-                    Card(month: 9, type: .dan, isChungDan: true),
+                    Card(month: 9, type: .yeol, isDoublePi: true),
+                    Card(month: 9, type: .tti, isChungDan: true),
                     Card(month: 9, type: .pi, piNum: 1)
                 ]
             case 10:
                 deck += [
                     Card(month: 10, type: .pi, piNum: 0),
-                    Card(month: 10, type: .animal),
-                    Card(month: 10, type: .dan, isChungDan: true),
+                    Card(month: 10, type: .yeol),
+                    Card(month: 10, type: .tti, isChungDan: true),
                     Card(month: 10, type: .pi, piNum: 1)
                 ]
             case 11:
@@ -99,8 +99,8 @@ class DeckFactory {
             case 12:
                 deck += [
                     Card(month: 12, type: .gwang),
-                    Card(month: 12, type: .animal),
-                    Card(month: 12, type: .dan),
+                    Card(month: 12, type: .yeol),
+                    Card(month: 12, type: .tti),
                     Card(month: 12, type: .pi, isDoublePi: true, piNum: 0)
                 ]
             default:

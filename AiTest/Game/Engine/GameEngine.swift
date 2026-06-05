@@ -201,15 +201,15 @@ class GameState {
         
         // 기본 점수
         score += Double(player.piCount) * 1.0
-        score += Double(player.danCount) * 2.5
-        score += Double(player.animalCount) * 3.0
+        score += Double(player.ttiCount) * 2.5
+        score += Double(player.yeolCount) * 3.0
         score += Double(player.gwangCount) * 10.0
         
         // 광 보너스
         if player.gwangCount >= 3 { score += 20 }
         
         // 단 보너스 (간단화)
-        if player.danCount >= 5 { score += 10 }
+        if player.ttiCount >= 5 { score += 10 }
         
         // 상대 견제
         for (_, op) in opponents {
@@ -262,8 +262,8 @@ class GameState {
     struct ScoreBreakdown {
         var baseScore: Int = 0
         var gwangScore: Int = 0
-        var danScore: Int = 0
-        var animalScore: Int = 0
+        var ttiScore: Int = 0
+        var yeolScore: Int = 0
         var piScore: Int = 0
         
         var hongdan = false
@@ -290,10 +290,10 @@ class GameState {
         switch (card.month, card.type) {
         case (1, .gwang): return CardMeta(isGwang: true, isanimal: false, isDan: false, isPi: false, danColor: nil, isGodori: false)
             
-        case (3, .animal), (8, .animal), (11, .animal):
+        case (3, .yeol), (8, .yeol), (11, .yeol):
             return CardMeta(isGwang: false, isanimal: true, isDan: false, isPi: false, danColor: nil, isGodori: true)
             
-        case (_, .dan):
+        case (_, .tti):
             let color: DanColor = {
                 if [1,2,3].contains(card.month) { return .hong }
                 if [4,5,6].contains(card.month) { return .chung }
@@ -319,26 +319,26 @@ class GameState {
         if player.gwangCount == 5 { result.gwangScore = 15 }
         
         // 띠
-        if player.danCount >= 5 { result.danScore = player.danCount - 4 }
+        if player.ttiCount >= 5 { result.ttiScore = player.ttiCount - 4 }
         
         // 열끗
-        if player.animalCount >= 5 { result.animalScore = player.animalCount - 4 }
+        if player.yeolCount >= 5 { result.yeolScore = player.yeolCount - 4 }
         
         // 피
         if player.piCount >= 10 { result.piScore = player.piCount - 9 }
         
         // 단
-        if player.hongDanCount >= 3 { result.hongdan = true; result.danScore += 3 }
-        if player.chungDanCount >= 3 { result.chungdan = true; result.danScore += 3 }
-        if player.choDanCount >= 3 { result.chodan = true; result.danScore += 3 }
+        if player.hongDanCount >= 3 { result.hongdan = true; result.ttiScore += 3 }
+        if player.chungDanCount >= 3 { result.chungdan = true; result.ttiScore += 3 }
+        if player.choDanCount >= 3 { result.chodan = true; result.ttiScore += 3 }
         
         // 고도리
         if player.godoriCount  == 3 {
             result.godori = true
-            result.animalScore += 5
+            result.yeolScore += 5
         }
         
-        result.baseScore = result.gwangScore + result.danScore + result.animalScore + result.piScore
+        result.baseScore = result.gwangScore + result.ttiScore + result.yeolScore + result.piScore
         
         return result
     }
@@ -375,7 +375,7 @@ class GameState {
         
         for p in state.players {
             used += p.handCards
-            used += p.capturedCardTypeGroup[0] + p.capturedCardTypeGroup[1] + p.capturedCardTypeGroup[2] + p.capturedCardTypeGroup[3]
+            used += p.capturedCardTypeGroup[CardType.gwang.rawValue] + p.capturedCardTypeGroup[CardType.yeol.rawValue] + p.capturedCardTypeGroup[CardType.tti.rawValue] + p.capturedCardTypeGroup[CardType.pi.rawValue]
         }
         
         used += state.table

@@ -27,12 +27,12 @@ final class Player {
         capturedCardTypeGroup[CardType.pi.rawValue].count
     }
     
-    var danCount: Int {
-        capturedCardTypeGroup[CardType.dan.rawValue].count
+    var ttiCount: Int {
+        capturedCardTypeGroup[CardType.tti.rawValue].count
     }
     
-    var animalCount: Int {
-        capturedCardTypeGroup[CardType.animal.rawValue].count
+    var yeolCount: Int {
+        capturedCardTypeGroup[CardType.yeol.rawValue].count
     }
     
     var gwangCount: Int {
@@ -40,19 +40,19 @@ final class Player {
     }
     
     var choDanCount: Int {
-        capturedCardTypeGroup[CardType.dan.rawValue].count(where: { $0.isChoDan == true })
+        capturedCardTypeGroup[CardType.tti.rawValue].count(where: { $0.isChoDan == true })
     }
     
     var hongDanCount: Int {
-        capturedCardTypeGroup[CardType.dan.rawValue].count(where: { $0.isChoDan == true })
+        capturedCardTypeGroup[CardType.tti.rawValue].count(where: { $0.isChoDan == true })
     }
     
     var chungDanCount: Int {
-        capturedCardTypeGroup[CardType.dan.rawValue].count(where: { $0.isChungDan == true })
+        capturedCardTypeGroup[CardType.tti.rawValue].count(where: { $0.isChungDan == true })
     }
     
     var godoriCount: Int {
-        capturedCardTypeGroup[CardType.animal.rawValue].count(where: { $0.isGodori == true })
+        capturedCardTypeGroup[CardType.yeol.rawValue].count(where: { $0.isGodori == true })
     }
     
     init(index: Int) {
