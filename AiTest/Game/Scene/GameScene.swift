@@ -70,10 +70,9 @@ class GameScene: SKScene, ObservableObject {
     
     private func startGame() {
         self.removeAllChildren()
-        self.deckCards = self.gameData.deckCards
         self.players = [Player(index: 0), Player(index: 1), Player(index: 2)]
         self.setPlayers()
-        self.initDeckCardNode()
+        self.setDeckCards()
         self.tableCardGroups = [[], [], [], [], [], [], [], [], [], [], [], [], [], []]
         
         Task {
@@ -944,9 +943,16 @@ class GameScene: SKScene, ObservableObject {
         return s
     }
     
-    private func initDeckCardNode() {
+    private func setDeckCards() {
         let startX = round(size.width / 2)
-        let startY = round(size.height / 2)
+        let startY = round(size.height / 2) - cardGap * 5
+        
+        self.deckCards = self.gameData.deckCards
+        
+        let deckAreaNode = SKShapeNode(rect: CGRect(x: 0, y: startY - cardSize.height , width: self.size.width, height: cardSize.height * 2))
+        deckAreaNode.fillColor = .black.withAlphaComponent(0.7)
+        deckAreaNode.strokeColor = .clear
+        self.addChild(deckAreaNode)
         
         for i in 0 ..< deckCards.count {
             let node = CardNode(name: deckCards[i].id.uuidString, card: deckCards[i], cardSize: cardSize, isFront: true)
@@ -961,14 +967,16 @@ class GameScene: SKScene, ObservableObject {
     
     private func getTableCardPosition(groupIndex: Int, cardIndexByGroup: Int) -> CGPoint {
         //print("\(#function): \(groupIndex), \(cardIndexByGroup)")
-        let centerX = size.width / 2
+        let startX = round(size.width / 2)
+        let startY = round(size.height / 2) - cardGap * 5
+        
         let cardWidthWithGap = self.cardSize.width * CardNodeScale.large.rawValue + self.cardGap
         let sp = CGFloat(cardIndexByGroup) * self.cardLayeredGap * CardNodeScale.large.rawValue
         if groupIndex % 2 == 0 {
-            return CGPoint(x:centerX - cardWidthWithGap / 2 - cardWidthWithGap * CGFloat(groupIndex / 2 + 1) + sp, y: self.size.height / 2 - sp)
+            return CGPoint(x:startX - cardWidthWithGap / 2 - cardWidthWithGap * CGFloat(groupIndex / 2 + 1) + sp, y: startY - sp)
         }
         else {
-            return CGPoint(x:centerX + cardWidthWithGap / 2 + cardWidthWithGap * round(CGFloat(groupIndex / 2 + 1)) + sp, y: self.size.height / 2 - sp)
+            return CGPoint(x:startX + cardWidthWithGap / 2 + cardWidthWithGap * round(CGFloat(groupIndex / 2 + 1)) + sp, y: startY - sp)
         }
     }
     
@@ -1031,7 +1039,7 @@ class GameScene: SKScene, ObservableObject {
             playerAreaNode.position.y = self.size.height * 4 / 3
         default: // user
             startPosition.x = (self.size.width - self.playerImageSize.width - playerLabelNode.frame.width) / 2
-            startPosition.y = cardHeightWithGap * 2 + (self.playerImageSize.height / 2) + self.cardGap
+            startPosition.y = cardHeightWithGap * 2 + (self.playerImageSize.height / 2) - self.cardGap * 5
             playerAreaNode.position.x = self.size.width / 2
             playerAreaNode.position.y = -self.size.height * 1.5
         }

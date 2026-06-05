@@ -20,7 +20,7 @@ class CardNode: SKSpriteNode {
     var isFront: Bool
     let frontImage: UIImage
     
-    init(name: String, card: Card, cardSize: CGSize, isFront: Bool = false) {
+    init(name: String, card: Card, cardSize: CGSize, isFront: Bool) {
         self.card = card
         self.isFront = isFront
         
