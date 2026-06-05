@@ -248,7 +248,7 @@ class GameScene: SKScene, ObservableObject {
                 //덱카드 뻑 처리(첫뻑, 첫뻑후 연속뻑, 연속뻑3회, 막장 제외)
                 else if nextDeckCardExceptBonus.month == handCard.month && player.handCards.count > 0 {
                     await self.movePlayerHandCardsToTable(player: player, handCards: [handCard])
-                    let tableGroupIndex = self.getTableCardGroupIndex(cardMonth: handCard.month)
+                    let tableGroupIndex = self.getTableCardGroupIndex(cardMonth: handCard.month) ?? self.getEmptyTableCardGroupIndex(cardMonth: handCard.month)
                     let fuckCards = [handCard, nextDeckCardExceptBonus] + matchingTableCards
                     await self.moveBonusDeckCardsToTable(tableGroupIndex: tableGroupIndex)
                     // await self.flipDeckCardAfterBonusCard() 가져가면 안됨
@@ -493,7 +493,7 @@ class GameScene: SKScene, ObservableObject {
     
     private func moveDeckCardMatchingTableCardsToPlayerCaptured(player: Player, matchingTableCards: [Card]) async {
         let deckCard = deckCards.removeLast()
-        let tableGroupIndex = self.getTableCardGroupIndex(cardMonth: matchingTableCards.last!.month)
+        let tableGroupIndex = self.getTableCardGroupIndex(cardMonth: matchingTableCards.last!.month) ?? self.getEmptyTableCardGroupIndex(cardMonth: matchingTableCards.last!.month)
         
         guard let deckCardNode = childNode(withName: deckCard.id.uuidString) as? CardNode else { return }
         guard let matchingTableCardNode = childNode(withName: matchingTableCards.last!.id.uuidString) as? CardNode else { return }
@@ -573,6 +573,7 @@ class GameScene: SKScene, ObservableObject {
         // captured로 이동
         let cardIndexByType = player.getCapturedCardIndexByType(card: handCard)
         let movePosition = self.getPlayerCapturedCardPosition(playerIndex: player.index, cardIndexByType: cardIndexByType, cardType: handCard.type)
+        handCardNode.removeStroke()
         handCardNode.moveAndTurnCard(movePosition: movePosition, duration: cardDuration, isFront: true, zPosition: cardIndexByType, afterCardNodeScale: .normal)
         do { try await Task.sleep(for: .seconds(cardDuration))
         } catch { print("error: \(error)")}
@@ -596,7 +597,7 @@ class GameScene: SKScene, ObservableObject {
     
     private func moveDeckCardToTable() async {
         guard let deckCardNode = childNode(withName: deckCards.last?.id.uuidString ?? "") as? CardNode else { return }
-        let groupIndex = self.getTableCardGroupIndex(cardMonth: deckCardNode.card.month)
+        let groupIndex = self.getTableCardGroupIndex(cardMonth: deckCardNode.card.month) ?? self.getEmptyTableCardGroupIndex(cardMonth: deckCardNode.card.month)
         let cardIndexByGroup = self.tableCardGroups[groupIndex].count
         let zPosition = self.getTableCardZPosition(groupIndex: groupIndex, cardIndexByGroup: cardIndexByGroup)
         let lastDeckCard = self.deckCards.removeLast()
@@ -608,7 +609,7 @@ class GameScene: SKScene, ObservableObject {
     }
     
     private func movePlayerHandCardsMatchingTableCardsToPlayerCaptured(player: Player, handCards: [Card], matchingTableCards: [Card]) async {
-        let tableCardGroupIndex = self.getTableCardGroupIndex(cardMonth: matchingTableCards.last!.month)
+        let tableCardGroupIndex = self.getTableCardGroupIndex(cardMonth: matchingTableCards.last!.month) ?? self.getEmptyTableCardGroupIndex(cardMonth: matchingTableCards.last!.month)
         
         for (i, handCard) in handCards.enumerated() {
             guard let handCardNode = childNode(withName: handCard.id.uuidString) as? CardNode else { return }
@@ -617,6 +618,7 @@ class GameScene: SKScene, ObservableObject {
             var matchPosition = matchingTableCardNode.position
             matchPosition.x += CGFloat(10 * i)
             matchPosition.y -= CGFloat(10 * i)
+            handCardNode.removeStroke()
             handCardNode.moveAndTurnCard(movePosition: matchPosition, duration: cardDuration, isFront: true, afterCardNodeScale: .normal)
         }
         
@@ -698,7 +700,7 @@ class GameScene: SKScene, ObservableObject {
     }
     
     private func movePlayerHandCardsToTable(player: Player, handCards: [Card]) async {
-        let groupIndex = self.getTableCardGroupIndex(cardMonth: handCards[0].month)
+        let groupIndex = self.getTableCardGroupIndex(cardMonth: handCards[0].month) ?? self.getEmptyTableCardGroupIndex(cardMonth: handCards[0].month)
         let cardIndexByGroup = self.tableCardGroups[groupIndex].count
         
         for (i, handCard) in handCards.enumerated() {
@@ -708,7 +710,7 @@ class GameScene: SKScene, ObservableObject {
             let zPosition = self.getTableCardZPosition(groupIndex: groupIndex, cardIndexByGroup: cardIndexByGroup + i)
             self.addTableCard(card: handCard)
             let movePosition = self.getTableCardPosition(groupIndex: groupIndex, cardIndexByGroup: cardIndexByGroup + i)
-
+            handCardNode.removeStroke()
             handCardNode.moveAndTurnCard(movePosition: movePosition, duration: cardDuration, isFront: true, zPosition: zPosition, afterCardNodeScale: .large)
         }
         
@@ -734,6 +736,15 @@ class GameScene: SKScene, ObservableObject {
         }
         for (i, handCard) in players[playerIndex].handCards.enumerated() {
             guard let handCardNode = childNode(withName: handCard.id.uuidString) as? CardNode else { return }
+            
+            // 사용자 카드가 테이블에 있으면 깜빡이게 표시하기 or 보너스카드
+            if playerIndex == 0 && (handCard.month == 0 || self.getTableCardGroupIndex(cardMonth: handCard.month) != nil) {
+                handCardNode.addStrokeWithBlink(size: self.cardSize)
+            }
+            else {
+                handCardNode.removeStroke()
+            }
+            
             let movePosition = self.getPlayerHandCardPosition(playerIndex: playerIndex, cardIndex: i)
             // 동일위치 다시 그리기 방지 (위치값 소숫점 미세하게 변경 무시)
             if Int(movePosition.x) == Int(handCardNode.position.x) && Int(movePosition.y) == Int(handCardNode.position.y) {
@@ -772,7 +783,7 @@ class GameScene: SKScene, ObservableObject {
                 if tableCard.month == 0 {
                     // table에서 제거하고 winner에게 지급
                     guard let tableCardNode = childNode(withName: tableCard.id.uuidString) as? CardNode else { return  }
-                    let tableGroupIndex = self.getTableCardGroupIndex(cardMonth: tableCard.month)
+                    let tableGroupIndex = self.getTableCardGroupIndex(cardMonth: tableCard.month) ?? self.getEmptyTableCardGroupIndex(cardMonth: tableCard.month)
                     self.removeTableCard(card: tableCard)
                     self.players[winnerIndex].capture(card: tableCard)
                     
@@ -890,17 +901,20 @@ class GameScene: SKScene, ObservableObject {
         }
     }
     
-    
-    private func getTableCardGroupIndex(cardMonth: Int) -> Int {
+    // 존재하는 테이블 그룹 찾기 (없으면 nil)
+    private func getTableCardGroupIndex(cardMonth: Int) -> Int? {
         for (i, tableCardGroup) in tableCardGroups.enumerated() {
-            
             if let card  = tableCardGroup.first {
                 if card.month == cardMonth {
                     return i
                 }
             }
         }
-        // 없으면 첫뻔째 빈그룹을 줘야 함
+        return nil
+    }
+    
+    // 비어있는 테이블 그룹 반환 (getTableCardGroupIndex이 없으면 )
+    private func getEmptyTableCardGroupIndex(cardMonth: Int) -> Int {
         for (i, tableCardGroup) in tableCardGroups.enumerated() {
             if tableCardGroup.isEmpty {
                 return i
@@ -928,7 +942,7 @@ class GameScene: SKScene, ObservableObject {
     }
     
     private func addTableCard(card: Card) {
-        let index = self.getTableCardGroupIndex(cardMonth: card.month)
+        let index = self.getTableCardGroupIndex(cardMonth: card.month) ?? self.getEmptyTableCardGroupIndex(cardMonth: card.month)
         self.tableCardGroups[index].append(card)
     }
     

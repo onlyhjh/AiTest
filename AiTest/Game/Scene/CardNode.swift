@@ -75,4 +75,26 @@ class CardNode: SKSpriteNode {
         run(SKAction.sequence(sequnce), completion: { self.zPosition = CGFloat(zPosition) })
     }
 
+    func addStrokeWithBlink(size: CGSize) {
+        self.removeAllChildren()
+        let borderNode = SKShapeNode(rectOf: size, cornerRadius: 5)
+        borderNode.name = "borderNode"
+        borderNode.strokeColor = .yellow
+        borderNode.lineWidth = 2.0
+        borderNode.fillColor = .clear
+        self.addChild(borderNode)
+        
+        // 깜빡이는 액션
+        let fadeOut = SKAction.fadeAlpha(to: 0.2, duration: 0.3)
+        let fadeIn = SKAction.fadeAlpha(to: 1.0, duration: 0.3)
+
+        let blink = SKAction.repeatForever(
+            SKAction.sequence([fadeOut, fadeIn])
+        )
+        borderNode.run(blink)
+    }
+    
+    func removeStroke() {
+        self.removeAllChildren()
+    }
 }
