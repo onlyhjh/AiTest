@@ -70,6 +70,7 @@ class GameScene: SKScene, ObservableObject {
     
     private func startGame() {
         self.removeAllChildren()
+        self.setBackgroundNodes()
         self.players = [Player(index: 0), Player(index: 1), Player(index: 2)]
         self.setPlayers()
         self.setDeckCards()
@@ -133,6 +134,9 @@ class GameScene: SKScene, ObservableObject {
             for i in 0...8 {
                 await self.moveDeckCardToPlayerCaptured(playerIndex: i % 3)
             }
+            
+            self.currentPlayerIndex = 0
+            self.setStrokeWithBlinkToPlayer()
         }
     }
     
@@ -963,11 +967,6 @@ class GameScene: SKScene, ObservableObject {
         
         self.deckCards = self.gameData.deckCards
         
-        let deckAreaNode = SKShapeNode(rect: CGRect(x: 0, y: startY - cardSize.height , width: self.size.width, height: cardSize.height * 2))
-        deckAreaNode.fillColor = .black.withAlphaComponent(0.7)
-        deckAreaNode.strokeColor = .clear
-        self.addChild(deckAreaNode)
-        
         for i in 0 ..< deckCards.count {
             let node = CardNode(name: deckCards[i].id.uuidString, card: deckCards[i], cardSize: cardSize, isFront: true)
             node.position = CGPoint(x: startX + CGFloat(i), y: startY - CGFloat(i))
@@ -1031,58 +1030,35 @@ class GameScene: SKScene, ObservableObject {
         return position
     }
     
-    private func setPlayer(player: Player) {
-        let cardHeightWithGap = self.cardSize.height + self.cardGap
-        var startPosition: CGPoint = .zero // 좌측 하단이 시작점
-        let playerAreaNode = SKShapeNode(circleOfRadius: player.index == 0 ? self.size.width : self.size.width / 2 )
-        let playerLabelNode = SKLabelNode(fontNamed: "System")
-        playerLabelNode.name = "playerLabelNode_\(player.index)"
-        playerLabelNode.text = player.name + " (\(player.money)만냥)"
-        playerLabelNode.fontSize = 18
+    private func setBackgroundNodes() {
+        let startX = round(size.width / 2)
+        let startY = round(size.height / 2) - cardGap * 5
         
-        switch player.index {
-        case 1:
-            startPosition.x = (self.size.width / 2) + self.cardGap
-            startPosition.y = self.size.height - self.cardSize.height - self.cardGap
-            playerAreaNode.position.x = 0
-            playerAreaNode.position.y = self.size.height * 4 / 3
-        case 2:
-            startPosition.x = self.cardGap
-            startPosition.y = self.size.height - self.cardSize.height - self.cardGap
-            playerAreaNode.position.x = self.size.width
-            playerAreaNode.position.y = self.size.height * 4 / 3
-        default: // user
-            startPosition.x = (self.size.width - self.playerImageSize.width - playerLabelNode.frame.width) / 2
-            startPosition.y = cardHeightWithGap * 2 + (self.playerImageSize.height / 2) - self.cardGap * 5
-            playerAreaNode.position.x = self.size.width / 2
-            playerAreaNode.position.y = -self.size.height * 1.5
+        let deckAreaNode = SKShapeNode(rect: CGRect(x: 0, y: startY - cardSize.height , width: self.size.width, height: cardSize.height * 2))
+        deckAreaNode.fillColor = .black.withAlphaComponent(0.7)
+        deckAreaNode.strokeColor = .clear
+        self.addChild(deckAreaNode)
+        
+        for playerIndex in 0...2 {
+            let playerAreaNode = SKShapeNode(circleOfRadius: playerIndex == 0 ? self.size.width : self.size.width / 2 )
+            
+            switch playerIndex {
+            case 1:
+                playerAreaNode.position.x = 0
+                playerAreaNode.position.y = self.size.height * 4 / 3
+            case 2:
+                playerAreaNode.position.x = self.size.width
+                playerAreaNode.position.y = self.size.height * 4 / 3
+            default: // user
+                playerAreaNode.position.x = self.size.width / 2
+                playerAreaNode.position.y = -self.size.height * 1.5
+            }
+            
+            playerAreaNode.fillColor = .white.withAlphaComponent(0.2)
+            playerAreaNode.strokeColor = .clear
+            playerAreaNode.zPosition = -100
+            addChild(playerAreaNode)
         }
-        
-        playerAreaNode.fillColor = .white.withAlphaComponent(0.1)
-        playerAreaNode.strokeColor = .clear
-        playerAreaNode.zPosition = -100
-        addChild(playerAreaNode)
-
-        let playerImageNode = SKSpriteNode(imageNamed: player.imageName ?? "player_unkown")
-        playerImageNode.name = "playerImageNode_\(player.index)"
-        playerImageNode.size = self.playerImageSize
-        let playerImageMaskPath = UIBezierPath(roundedRect: playerImageNode.frame, cornerRadius: self.cardSize.width / 2)
-        let playerImageMaskNode = SKShapeNode(path: playerImageMaskPath.cgPath)
-        playerImageMaskNode.name = "playerImageMaskNode_\(player.index)"
-        playerImageMaskNode.fillColor = .black
-        playerImageMaskNode.strokeColor = .white
-        playerImageMaskNode.lineWidth = 2
-        let playerImageCropNode = SKCropNode()
-        playerImageCropNode.name = "playerCropNode_\(player.index)"
-        playerImageCropNode.maskNode = playerImageMaskNode
-        playerImageCropNode.addChild(playerImageNode)
-        playerImageCropNode.position.x = startPosition.x + self.playerImageSize.height / 2
-        playerImageCropNode.position.y = startPosition.y + self.playerImageSize.height / 2
-        addChild(playerImageCropNode)
-    
-        playerLabelNode.position.x = startPosition.x + self.playerImageSize.width + playerLabelNode.bounds.width / 2
-        playerLabelNode.position.y = startPosition.y + (player.index == 0 ? 0.0 : self.playerImageSize.height / 2)
-        self.addChild(playerLabelNode)
     }
     
     private func setPlayers() {
@@ -1096,6 +1072,84 @@ class GameScene: SKScene, ObservableObject {
             self.players[i].imageName = "player_" + String(format: "%02d", randomThree[i])
             self.setPlayer(player: players[i])
         }
+    }
+    
+    private func setStrokeWithBlinkToPlayer() {
+        for i in 0...2 {
+            if let playerImageNode = self.childNode(withName: "playerImageCropNode_\(i)"), let borderNode = playerImageNode.childNode(withName: "borderNode")  {
+                borderNode.removeAllChildren()
+            }
+            
+            guard let playerImageNode = self.childNode(withName: "playerImageCropNode_\(i)") else { return }
+            let borderNode = SKShapeNode(rectOf: self.playerImageSize, cornerRadius: self.playerImageSize.width / 2)
+            borderNode.name = "borderNode"
+            borderNode.strokeColor = i == self.currentPlayerIndex ? .yellow : .white.withAlphaComponent(0.5)
+            borderNode.lineWidth = 3.0
+            borderNode.fillColor = .clear
+            borderNode.zPosition = 100
+            playerImageNode.addChild(borderNode)
+            
+            // 깜빡이는 액션
+//            if i == self.currentPlayerIndex,  {
+//                let fadeOut = SKAction.fadeAlpha(to: 0.2, duration: 0.3)
+//                let fadeIn = SKAction.fadeAlpha(to: 1.0, duration: 0.3)
+//        
+//                let blink = SKAction.repeatForever(
+//                    SKAction.sequence([fadeOut, fadeIn])
+//                )
+//                borderNode.run(blink)
+//            }
+        }
+    }
+    
+    private func setPlayer(player: Player) {
+        let cardHeightWithGap = self.cardSize.height + self.cardGap
+        var startPosition: CGPoint = .zero // 좌측 하단이 시작점
+        let playerLabelNode = SKLabelNode(fontNamed: "System")
+        playerLabelNode.name = "playerLabelNode_\(player.index)"
+        playerLabelNode.text = player.name + " (\(player.money)만냥)"
+        playerLabelNode.fontColor = .white.withAlphaComponent(0.7)
+        playerLabelNode.fontSize = 20
+        
+        switch player.index {
+        case 1:
+            startPosition.x = (self.size.width / 2) + self.cardGap
+            startPosition.y = self.size.height - self.cardSize.height - self.cardGap
+        case 2:
+            startPosition.x = self.cardGap
+            startPosition.y = self.size.height - self.cardSize.height - self.cardGap
+        default: // user
+            startPosition.x = (self.size.width - self.playerImageSize.width - playerLabelNode.frame.width) / 2
+            startPosition.y = cardHeightWithGap * 2 /*+ (self.playerImageSize.height / 2) - self.cardGap * 5*/
+        }
+
+        let playerImageNode = SKSpriteNode(imageNamed: player.imageName ?? "player_unkown")
+        playerImageNode.name = "playerImageNode_\(player.index)"
+        playerImageNode.size = self.playerImageSize
+        let playerImageMaskPath = UIBezierPath(roundedRect: playerImageNode.frame, cornerRadius: self.cardSize.width / 2)
+        let playerImageMaskNode = SKShapeNode(path: playerImageMaskPath.cgPath)
+        playerImageMaskNode.name = "playerImageMaskNode_\(player.index)"
+        playerImageMaskNode.fillColor = .black
+        playerImageMaskNode.strokeColor = .white
+        playerImageMaskNode.lineWidth = 2
+        let borderNode = SKShapeNode(rectOf: self.playerImageSize, cornerRadius: self.playerImageSize.width / 2)
+        borderNode.name = "borderNode"
+        borderNode.strokeColor = .white.withAlphaComponent(0.5)
+        borderNode.lineWidth = 3.0
+        borderNode.fillColor = .clear
+        borderNode.zPosition = 100
+        let playerImageCropNode = SKCropNode()
+        playerImageCropNode.name = "playerImageCropNode_\(player.index)"
+        playerImageCropNode.maskNode = playerImageMaskNode
+        playerImageCropNode.addChild(playerImageNode)
+        playerImageCropNode.addChild(borderNode)
+        playerImageCropNode.position.x = startPosition.x + self.playerImageSize.height / 2
+        playerImageCropNode.position.y = startPosition.y + self.playerImageSize.height / 2
+        self.addChild(playerImageCropNode)
+    
+        playerLabelNode.position.x = startPosition.x + self.playerImageSize.width + playerLabelNode.bounds.width / 2
+        playerLabelNode.position.y = startPosition.y + (player.index == 0 ? 0.0 : self.playerImageSize.height / 2)
+        self.addChild(playerLabelNode)
     }
     
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
