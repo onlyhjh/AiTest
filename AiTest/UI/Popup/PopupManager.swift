@@ -19,6 +19,8 @@ enum PopupType {
     case wave               // 흔들기
     case boom               // 폭탄
     case kiss               // 쪽
+    case deckBonus          // 보너스 득
+    case handBonus          // 손에 있는 보너스 카드
     case fuck               // 기본 뻑
     case firstFuck          // 첫 뻑
     case secondFuck         // 두번째 뻑 (첫뻑후)
@@ -78,6 +80,14 @@ class PopupManager {
             case .fuck:
                 popupData.title = "뻑!!!"
                 popupData.message = "아놔~ 🤯"
+                popupData.status = .showAutoCloseMessagePopup
+            case .deckBonus:
+                popupData.title = "득템 보너스!!!"
+                popupData.message = "아싸 쌍피 추가요~ 🤭"
+                popupData.status = .showAutoCloseMessagePopup
+            case .handBonus:
+                popupData.title = "숨겨둔 보너스!!!"
+                popupData.message = "오늘 운빨이 좋구먼~ 🤭"
                 popupData.status = .showAutoCloseMessagePopup
             case .firstFuck:
                 popupData.title = "첫뻑!!!"
