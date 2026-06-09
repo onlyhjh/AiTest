@@ -245,19 +245,24 @@ class GameScene: SKScene, ObservableObject {
                     await self.movePlayerHandCardsToMatchingTableCards(player: player, handCards: sameMonthPlayerHandCards, tableCards: matchingTableCards)
                     PopupManager.shared.showPopup(popupData: self.popupData, type: .boom, cards: sameMonthPlayerHandCards, players: [player], completion: {_ in
                         Task{
-                            await self.moveMatchingCardsToPlayerCaptured(player: player, deckOrHandCards: sameMonthPlayerHandCards, tableCards: matchingTableCards)
-                            await self.collectPiCardsFromOthers(toPlayer: player, piCount: 2) {
+                            await self.moveMatchingCardsToPlayerCaptured(player: player, deckOrHandCards: sameMonthPlayerHandCards, tableCards: matchingTableCards) {
                                 Task{
-                                    await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(player: player)
-                                    await self.flipDeckCardAfterBonusCard()
-                                    await self.setEmptyPlayerHandCards(player: player, count: 2)
-                                    self.sortPlayerHandCards(playerIndex: self.currentPlayerIndex)
+                                    await self.collectPiCardsFromOthers(toPlayer: player, piCount: 2) {
+                                        Task{
+                                            await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(player: player){
+                                                Task {
+                                                    await self.flipDeckCardAfterBonusCard()
+                                                    await self.setEmptyPlayerHandCards(player: player, count: 2)
+                                                    self.sortPlayerHandCards(playerIndex: self.currentPlayerIndex)
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
                     })
                 }
-
                 //덱카드 뻑 처리(첫뻑, 첫뻑후 연속뻑, 연속뻑3회, 막장 제외)
                 else if nextDeckCardExceptBonus.month == handCard.month && player.handCards.count > 1 {
                     await self.movePlayerHandCardsToTable(player: player, handCards: [handCard])
@@ -293,10 +298,16 @@ class GameScene: SKScene, ObservableObject {
                 }
                 else {
                     await self.movePlayerHandCardsToMatchingTableCards(player: player, handCards: [handCard], tableCards: matchingTableCards)
-                    await self.moveMatchingCardsToPlayerCaptured(player: player, deckOrHandCards: [handCard], tableCards: matchingTableCards)
-                    await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(player: player)
-                    await self.flipDeckCardAfterBonusCard()
-                    self.sortPlayerHandCards(playerIndex: self.currentPlayerIndex)
+                    await self.moveMatchingCardsToPlayerCaptured(player: player, deckOrHandCards: [handCard], tableCards: matchingTableCards) {
+                        Task {
+                            await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(player: player) {
+                                Task {
+                                    await self.flipDeckCardAfterBonusCard()
+                                    self.sortPlayerHandCards(playerIndex: self.currentPlayerIndex)
+                                }
+                            }
+                        }
+                    }
                 }
             case 2: // 매칭카드 2개
                 // 따닥
@@ -304,33 +315,51 @@ class GameScene: SKScene, ObservableObject {
                     await self.movePlayerHandCardsToMatchingTableCards(player: player, handCards: [handCard], tableCards: matchingTableCards)
                     PopupManager.shared.showPopup(popupData: self.popupData, type: .ddadak, cards: [handCard, nextDeckCardExceptBonus] + matchingTableCards, players: [player], completion: { _ in
                         Task {
-                            await self.moveMatchingCardsToPlayerCaptured(player: player, deckOrHandCards: [handCard], tableCards: [matchingTableCards[0]])
-                            await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(player: player)
-                            await self.flipDeckCardAfterBonusCard()
-                            await self.collectPiCardsFromOthers(toPlayer: player, piCount: 1, completion: {})
-                            self.sortPlayerHandCards(playerIndex: self.currentPlayerIndex)
+                            await self.moveMatchingCardsToPlayerCaptured(player: player, deckOrHandCards: [handCard], tableCards: [matchingTableCards[0]]) {
+                                Task {
+                                    await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(player: player){
+                                        Task {
+                                            await self.flipDeckCardAfterBonusCard()
+                                            await self.collectPiCardsFromOthers(toPlayer: player, piCount: 1, completion: {})
+                                            self.sortPlayerHandCards(playerIndex: self.currentPlayerIndex)
+                                        }
+                                    }
+                                }
+                            }
                         }
                     })
                 }
                 // 매칭카드가 같은 종류이면 아무거나 가져가기
                 else if matchingTableCards[0].type == matchingTableCards[1].type && matchingTableCards[0].isDoublePi == matchingTableCards[1].isDoublePi {
                     await self.movePlayerHandCardsToMatchingTableCards(player: player, handCards: [handCard], tableCards: matchingTableCards)
-                    await self.moveMatchingCardsToPlayerCaptured(player: player, deckOrHandCards: [handCard], tableCards: [matchingTableCards[0]])
-                    await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(player: player)
-                    await self.flipDeckCardAfterBonusCard()
-                    self.sortPlayerHandCards(playerIndex: self.currentPlayerIndex)
+                    await self.moveMatchingCardsToPlayerCaptured(player: player, deckOrHandCards: [handCard], tableCards: [matchingTableCards[0]]){
+                        Task {
+                            await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(player: player){
+                                Task {
+                                    await self.flipDeckCardAfterBonusCard()
+                                    self.sortPlayerHandCards(playerIndex: self.currentPlayerIndex)
+                                }
+                            }
+                        }
+                    }
                 }
                 // 카드선택
                 else {
                     await self.movePlayerHandCardsToMatchingTableCards(player: player, handCards: [handCard], tableCards: matchingTableCards)
-                    PopupManager.shared.showPopup(popupData: self.popupData, type: .selectCard, cards: [handCard] + matchingTableCards, players: [player], completion: { select in
+                    PopupManager.shared.showPopup(popupData: self.popupData, type: .selectCard, cards: [handCard] + matchingTableCards, players: [player]) { select in
                         Task {
-                            await self.moveMatchingCardsToPlayerCaptured(player: player, deckOrHandCards: [self.popupData.cards[0]], tableCards: [self.popupData.cards[1]])
-                            await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(player: player)
-                            await self.flipDeckCardAfterBonusCard()
-                            self.sortPlayerHandCards(playerIndex: self.currentPlayerIndex)
+                            await self.moveMatchingCardsToPlayerCaptured(player: player, deckOrHandCards: [self.popupData.cards[0]], tableCards: [self.popupData.cards[1]]) {
+                                Task {
+                                    await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(player: player){
+                                        Task {
+                                            await self.flipDeckCardAfterBonusCard()
+                                            self.sortPlayerHandCards(playerIndex: self.currentPlayerIndex)
+                                        }
+                                    }
+                                }
+                            }
                         }
-                    })
+                    }
                 }
             case 3: // 매칭카드 3개
                 // 3장 가져오기 ~ 한장씩 뺏기
@@ -338,12 +367,18 @@ class GameScene: SKScene, ObservableObject {
                 await self.movePlayerHandCardsToMatchingTableCards(player: player, handCards: [handCard], tableCards: matchingTableCards)
                 PopupManager.shared.showPopup(popupData: self.popupData, type: isPlayerFuckCard ? .threeTableCardsWithPlayerFuck : .threeTableCards, cards: [handCard] + matchingTableCards, players: [player], completion: { _ in
                     Task {
-                        await self.moveMatchingCardsToPlayerCaptured(player: player, deckOrHandCards: [handCard], tableCards: matchingTableCards)
-                        await self.collectPiCardsFromOthers(toPlayer: player, piCount: isPlayerFuckCard ? 2 : 1) {
-                            Task{
-                                await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(player: player)
-                                await self.flipDeckCardAfterBonusCard()
-                                self.sortPlayerHandCards(playerIndex: self.currentPlayerIndex)
+                        await self.moveMatchingCardsToPlayerCaptured(player: player, deckOrHandCards: [handCard], tableCards: matchingTableCards) {
+                            Task {
+                                await self.collectPiCardsFromOthers(toPlayer: player, piCount: isPlayerFuckCard ? 2 : 1) {
+                                    Task{
+                                        await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(player: player){
+                                            Task {
+                                                await self.flipDeckCardAfterBonusCard()
+                                                self.sortPlayerHandCards(playerIndex: self.currentPlayerIndex)
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -384,13 +419,19 @@ class GameScene: SKScene, ObservableObject {
             
             // 쪽이면 > 쪽카드 받아가기 (막장 제외)
             if nextDeckCardExceptBonus.month == handCard.month && player.handCards.count > 0 {
-                await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(player: player)
-                await self.flipDeckCardAfterBonusCard(kissHandCard: handCard)
+                await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(player: player) {
+                    Task {
+                        await self.flipDeckCardAfterBonusCard(kissHandCard: handCard)
+                    }
+                }
             }
             else {
                 // 덱 보너스 카드 처리 후 카드 뒤집기
-                await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(player: player)
-                await self.flipDeckCardAfterBonusCard()
+                await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(player: player) {
+                    Task {
+                        await self.flipDeckCardAfterBonusCard()
+                    }
+                }
             }
         }
     }
@@ -471,26 +512,31 @@ class GameScene: SKScene, ObservableObject {
                 if let khc = kissHandCard {
                     PopupManager.shared.showPopup(popupData: popupData, type: .kiss, cards: [khc, deckCard], players: [player]) { select in
                         Task {
-                            await self.moveMatchingCardsToPlayerCaptured(player: player, deckOrHandCards: [deckCard], tableCards: matchingTableCards)
-                            await self.collectPiCardsFromOthers(toPlayer: player, piCount: 1) {}
+                            await self.moveMatchingCardsToPlayerCaptured(player: player, deckOrHandCards: [deckCard], tableCards: matchingTableCards){
+                                Task {
+                                    await self.collectPiCardsFromOthers(toPlayer: player, piCount: 1) {}
+                                    self.sortPlayerHandCards(playerIndex: self.currentPlayerIndex)
+                                }
+                            }
                         }
                     }
                 }
                 else {
-                    await self.moveMatchingCardsToPlayerCaptured(player: player, deckOrHandCards: [deckCard], tableCards: matchingTableCards)
+                    await self.moveMatchingCardsToPlayerCaptured(player: player, deckOrHandCards: [deckCard], tableCards: matchingTableCards){}
                 }
             case 2: // 매칭카드 2개
                 // 매칭카드가 같은 종류이면 아무거나 가져가기
                 if matchingTableCards[0].type == matchingTableCards[1].type && matchingTableCards[0].isDoublePi == matchingTableCards[1].isDoublePi {
                     await self.moveDeckCardToMatchingTableCards(player: player, deckCard: deckCard, tableCards: matchingTableCards)
-                    await self.moveMatchingCardsToPlayerCaptured(player: player, deckOrHandCards: [deckCard], tableCards: [matchingTableCards[0]])
+                    await self.moveMatchingCardsToPlayerCaptured(player: player, deckOrHandCards: [deckCard], tableCards: [matchingTableCards[0]]){}
                 }
                 // 카드 선택
                 else {
                     await self.moveDeckCardToMatchingTableCards(player: player, deckCard: deckCard, tableCards: matchingTableCards)
                     PopupManager.shared.showPopup(popupData: self.popupData, type: .selectCard, cards: [deckCard] + matchingTableCards, players: [player], completion: { select in
                         Task {
-                            await self.moveMatchingCardsToPlayerCaptured(player: player, deckOrHandCards: [deckCard], tableCards: [self.popupData.cards[1]])
+                            await self.moveMatchingCardsToPlayerCaptured(player: player, deckOrHandCards: [deckCard], tableCards: [self.popupData.cards[1]]){}
+                            self.sortPlayerHandCards(playerIndex: self.currentPlayerIndex)
                         }
                     })
                 }
@@ -500,38 +546,59 @@ class GameScene: SKScene, ObservableObject {
                 await self.moveDeckCardToMatchingTableCards(player: player, deckCard: deckCard, tableCards: matchingTableCards)
                 PopupManager.shared.showPopup(popupData: self.popupData, type: isPlayerFuckCard ? .threeTableCardsWithPlayerFuck : .threeTableCards, cards: [deckCard] + matchingTableCards, players: [player], completion: { _ in
                     Task {
-                        await self.moveMatchingCardsToPlayerCaptured(player: player, deckOrHandCards: [deckCard], tableCards: matchingTableCards)
-                        await self.collectPiCardsFromOthers(toPlayer: player, piCount: isPlayerFuckCard ? 2 : 1) {
-                            
+                        await self.moveMatchingCardsToPlayerCaptured(player: player, deckOrHandCards: [deckCard], tableCards: matchingTableCards) {
+                            Task {
+                                await self.collectPiCardsFromOthers(toPlayer: player, piCount: isPlayerFuckCard ? 2 : 1) {}
+                                self.sortPlayerHandCards(playerIndex: self.currentPlayerIndex)
+                            }
                         }
                     }
                 })
             default: break
             }
             
-            self.sortPlayerHandCards(playerIndex: currentPlayerIndex)
+            self.sortPlayerHandCards(playerIndex: self.currentPlayerIndex)
         }
     }
     
     // Test : 한사람에게 카드 몰빵
     private func moveDeckCardToPlayerCaptured(playerIndex: Int) async {
         let deckCard = self.deckCards.removeLast()
-        players[playerIndex].capture(card: deckCard)
-        guard let deckCardNode = childNode(withName: deckCard.id.uuidString) as? CardNode else { return }
-        let cardIndexByType = players[playerIndex].getCapturedCardIndexByType(card: deckCard)
-        let movePosition = self.getPlayerCapturedCardPosition(playerIndex: playerIndex, cardIndexByType: cardIndexByType, cardType: deckCard.type)
-        deckCardNode.moveAndTurnCard(movePosition: movePosition, duration: cardDuration, isFront: true, zPosition: cardIndexByType, afterCardNodeScale: .normal)
+        self.moveCardToPlayerCaptured(player: players[playerIndex], card: deckCard)
         
         do { try await Task.sleep(for: .seconds(cardDuration))
         } catch { print("error: \(error)")}
     }
     
     private func moveCardToPlayerCaptured(player: Player, card: Card, forcedType: CardType? = nil) {
+        print("\(#function) card: \(card.month), \(card.type)")
         guard let cardNode = self.childNode(withName: card.id.uuidString) as? CardNode else { return }
         player.capture(card: card, forcedType: forcedType)
+        cardNode.removeStroke()
         let cardIndexByType = player.getCapturedCardIndexByType(card: card, forcedType: forcedType)
         let movePosition = self.getPlayerCapturedCardPosition(playerIndex: player.index, cardIndexByType: cardIndexByType, cardType: forcedType ?? card.type)
         cardNode.moveAndTurnCard(movePosition: movePosition, duration: cardDuration, isFront: true, zPosition: cardIndexByType, afterCardNodeScale: .normal)
+    }
+    
+    private func moveCardToTable(card: Card, tableGroupIndex: Int? = nil) {
+        print("\(#function) card: \(card.month), \(card.type)")
+        guard let cardNode = childNode(withName: card.id.uuidString) as? CardNode else { return }
+        cardNode.removeStroke()
+        let groupIndex = tableGroupIndex ?? self.getTableCardGroupIndex(cardMonth: cardNode.card.month) ?? self.getEmptyTableCardGroupIndex(cardMonth: cardNode.card.month)
+        let cardIndexByGroup = self.tableCardGroups[groupIndex].count
+        let zPosition = self.getTableCardZPosition(groupIndex: groupIndex, cardIndexByGroup: cardIndexByGroup)
+        let movePosition = self.getTableCardPosition(groupIndex: groupIndex, cardIndexByGroup: cardIndexByGroup)
+        self.addTableCard(card: card)
+        cardNode.moveAndTurnCard(movePosition: movePosition, duration: cardDuration, isFront: true, zPosition: Int(zPosition),afterCardNodeScale: .large)
+    }
+    
+    private func moveDeckCardToTable() async {
+        let deckCard = self.deckCards.removeLast()
+        print("\(#function) deckCard: \(deckCard.month), \(deckCard.type)")
+        self.moveCardToTable(card: deckCard)
+        
+        do { try await Task.sleep(for: .seconds(cardDuration))
+        } catch { print("error: \(error)")}
     }
     
     private func isGukjinCard(card: Card) -> Bool {
@@ -542,13 +609,8 @@ class GameScene: SKScene, ObservableObject {
         guard let handCardNode = childNode(withName: handCard.id.uuidString) as? CardNode else { return }
         // 가지고 있는 카드를 수집카드로// 손에서 비움
         player.handCards.removeAll { $0.id == handCard.id }
-        player.capture(card: handCard)
+        self.moveCardToPlayerCaptured(player: player, card: handCard)
         
-        // captured로 이동
-        let cardIndexByType = player.getCapturedCardIndexByType(card: handCard)
-        let movePosition = self.getPlayerCapturedCardPosition(playerIndex: player.index, cardIndexByType: cardIndexByType, cardType: handCard.type)
-        handCardNode.removeStroke()
-        handCardNode.moveAndTurnCard(movePosition: movePosition, duration: cardDuration, isFront: true, zPosition: cardIndexByType, afterCardNodeScale: .normal)
         do { try await Task.sleep(for: .seconds(cardDuration))
         } catch { print("error: \(error)")}
         
@@ -569,18 +631,7 @@ class GameScene: SKScene, ObservableObject {
         }
     }
     
-    private func moveDeckCardToTable() async {
-        guard let deckCardNode = childNode(withName: deckCards.last?.id.uuidString ?? "") as? CardNode else { return }
-        let groupIndex = self.getTableCardGroupIndex(cardMonth: deckCardNode.card.month) ?? self.getEmptyTableCardGroupIndex(cardMonth: deckCardNode.card.month)
-        let cardIndexByGroup = self.tableCardGroups[groupIndex].count
-        let zPosition = self.getTableCardZPosition(groupIndex: groupIndex, cardIndexByGroup: cardIndexByGroup)
-        let lastDeckCard = self.deckCards.removeLast()
-        self.addTableCard(card: lastDeckCard)
-        let movePosition = self.getTableCardPosition(groupIndex: groupIndex, cardIndexByGroup: cardIndexByGroup)
-        deckCardNode.moveAndTurnCard(movePosition: movePosition, duration: cardDuration, isFront: true, zPosition: Int(zPosition),afterCardNodeScale: .large)
-        do { try await Task.sleep(for: .seconds(cardDuration))
-        } catch { print("error: \(error)")}
-    }
+    
     
     private func moveDeckCardToMatchingTableCards(player: Player, deckCard: Card, tableCards: [Card]) async {
         guard let deckCardNode = childNode(withName: deckCard.id.uuidString) as? CardNode else { return }
@@ -621,7 +672,7 @@ class GameScene: SKScene, ObservableObject {
         } catch { print("error: \(error)")}
     }
     
-    private func moveMatchingCardsToPlayerCaptured(player: Player, deckOrHandCards: [Card] = [], tableCards: [Card]) async {
+    private func moveMatchingDeckOrHandCardToPlayerCaptured(player: Player, deckOrHandCards: [Card] = [], tableCards: [Card], completion: @escaping () -> Void) async {
         let tableCardGroupIndex = self.getTableCardGroupIndex(cardMonth: tableCards.last!.month) ?? self.getEmptyTableCardGroupIndex(cardMonth: tableCards.last!.month)
 
         for deckOrHandCard in deckOrHandCards {
@@ -641,13 +692,20 @@ class GameScene: SKScene, ObservableObject {
                         self.moveCardToPlayerCaptured(player: player, card: deckOrHandCard)
                         self.sortTableCardGroup(tableGroupIndex: tableCardGroupIndex)
                     }
+                    completion()
                 }
             }
             else {
                 self.moveCardToPlayerCaptured(player: player, card: deckOrHandCard)
+                self.sortTableCardGroup(tableGroupIndex: tableCardGroupIndex)
+                completion()
             }
         }
-        
+    }
+    
+    private func moveMatchingTableCardsToPlayerCaptured(player: Player, tableCards: [Card], completion: @escaping () -> Void) async {
+        let tableCardGroupIndex = self.getTableCardGroupIndex(cardMonth: tableCards.last!.month) ?? self.getEmptyTableCardGroupIndex(cardMonth: tableCards.last!.month)
+
         for tableCard in tableCards {
             self.removeTableCard(card: tableCard)
             
@@ -664,19 +722,31 @@ class GameScene: SKScene, ObservableObject {
                         self.moveCardToPlayerCaptured(player: player, card: tableCard)
                         self.sortTableCardGroup(tableGroupIndex: tableCardGroupIndex)
                     }
-                    return
+                    completion()
                 }
             }
             else {
                 self.moveCardToPlayerCaptured(player: player, card: tableCard)
+                self.sortTableCardGroup(tableGroupIndex: tableCardGroupIndex)
+                completion()
             }
         }
-        
-        // 테이블 바닥카드 가져갈때 위치값 비워줌
-        self.sortTableCardGroup(tableGroupIndex: tableCardGroupIndex)
-        
-        do { try await Task.sleep(for: .seconds(cardDuration))
-        } catch { print("error: \(error)")}
+    }
+    
+    private func moveMatchingCardsToPlayerCaptured(player: Player, deckOrHandCards: [Card] = [], tableCards: [Card], completion: @escaping () -> Void) async {
+        Task {
+            await self.moveMatchingDeckOrHandCardToPlayerCaptured(player: player, deckOrHandCards: deckOrHandCards, tableCards: tableCards) {
+                Task {
+                    await self.moveMatchingTableCardsToPlayerCaptured(player: player, tableCards: tableCards) {
+                        Task{
+                            do { try await Task.sleep(for: .seconds(self.cardDuration))
+                            } catch { print("error: \(error)")}
+                            completion()
+                        }
+                    }
+                }
+            }
+        }
     }
     
     // 테이블 바닥카드 가져갈때 해당 그룹 정렬
@@ -707,11 +777,7 @@ class GameScene: SKScene, ObservableObject {
             guard let handCardNode = childNode(withName: handCard.id.uuidString) as? CardNode else { return }
             player.handCards.removeAll { $0.id == handCard.id }
             
-            let zPosition = self.getTableCardZPosition(groupIndex: groupIndex, cardIndexByGroup: cardIndexByGroup + i)
-            self.addTableCard(card: handCard)
-            let movePosition = self.getTableCardPosition(groupIndex: groupIndex, cardIndexByGroup: cardIndexByGroup + i)
-            handCardNode.removeStroke()
-            handCardNode.moveAndTurnCard(movePosition: movePosition, duration: cardDuration, isFront: true, zPosition: zPosition, afterCardNodeScale: .large)
+            self.moveCardToTable(card: handCard)
         }
         
         do { try await Task.sleep(for: .seconds(cardDuration))
@@ -785,11 +851,7 @@ class GameScene: SKScene, ObservableObject {
                     guard let tableCardNode = childNode(withName: tableCard.id.uuidString) as? CardNode else { return  }
                     let tableGroupIndex = self.getTableCardGroupIndex(cardMonth: tableCard.month) ?? self.getEmptyTableCardGroupIndex(cardMonth: tableCard.month)
                     self.removeTableCard(card: tableCard)
-                    self.players[winnerIndex].capture(card: tableCard)
-                    
-                    let cardIndexByType = players[playerIndex].getCapturedCardIndexByType(card: tableCard)
-                    let movePosition = self.getPlayerCapturedCardPosition(playerIndex: playerIndex, cardIndexByType: cardIndexByType, cardType: tableCard.type)
-                    tableCardNode.moveAndTurnCard(movePosition: movePosition, duration: cardDuration, isFront: true, zPosition: cardIndexByType, afterCardNodeScale: .normal)
+                    self.moveCardToPlayerCaptured(player: players[playerIndex], card: tableCard)
                     self.sortTableCardGroup(tableGroupIndex: tableGroupIndex)
                     
                     do { try await Task.sleep(for: .seconds(cardDuration))
@@ -810,33 +872,30 @@ class GameScene: SKScene, ObservableObject {
     }
 
     // 보너스 카드가 연속인 경우 처리, 보너스 카드가 아닌경우
-    private func moveBonusDeckCardsToPlayerCapturedIfNeeded(player: Player) async  {
+    private func moveBonusDeckCardsToPlayerCapturedIfNeeded(player: Player, completion: @escaping () -> Void) async  {
         guard let deckCard = self.deckCards.last else { return }
         if deckCard.month == 0 {
-            PopupManager.shared.showPopup(popupData: self.popupData, type: .deckBonus, cards: [deckCard], players: [player], completion: {_ in
+            PopupManager.shared.showPopup(popupData: self.popupData, type: .deckBonus, cards: [deckCard], players: [player]) { _ in
                 Task {
                     // table에서 제거하고 winner에게 지급
-                    guard let deckCardNode = self.childNode(withName: deckCard.id.uuidString) as? CardNode else { return  }
                     self.deckCards.removeLast()
-                    player.capture(card: deckCard)
-                    
-                    let cardIndexByType = player.getCapturedCardIndexByType(card: deckCard)
-                    let movePosition = self.getPlayerCapturedCardPosition(playerIndex: player.index, cardIndexByType: cardIndexByType, cardType: deckCard.type)
-                    deckCardNode.moveAndTurnCard(movePosition: movePosition, duration: self.cardDuration, isFront: true, zPosition: cardIndexByType, afterCardNodeScale: .normal)
-                    
+                    self.moveCardToPlayerCaptured(player: player, card: deckCard)
                     
                     do { try await Task.sleep(for: .seconds(self.cardDuration))
                     } catch { print("error: \(error)")}
                     
                     // 다시 시도
-                    await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(player: player)
+                    await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(player: player, completion: completion)
                 }
-            })
+            }
+        }
+        else {
+            completion()
         }
     }
 
     private func moveOtherPlayersCapturedCardsToPlayerCaptured(toPlayer: Player, piCount: Int) async  {
-        for (i, anotherPlayer) in self.players.enumerated() {
+        for anotherPlayer in self.players {
             if anotherPlayer.index == toPlayer.index { continue }
             
             let doublePi: Card? = anotherPlayer.capturedCardTypeGroup[CardType.pi.rawValue].last{ $0.isDoublePi == true }
@@ -865,12 +924,7 @@ class GameScene: SKScene, ObservableObject {
             
             for movingCard in movingCards {
                 anotherPlayer.capturedCardTypeGroup[CardType.pi.rawValue].removeAll { $0.id == movingCard.id }
-                toPlayer.capture(card: movingCard)
-                
-                guard let deckCardNode = childNode(withName: movingCard.id.uuidString) as? CardNode else { return  }
-                let cardIndexByType = toPlayer.getCapturedCardIndexByType(card: movingCard)
-                let movePosition = self.getPlayerCapturedCardPosition(playerIndex: toPlayer.index, cardIndexByType: cardIndexByType, cardType: movingCard.type)
-                deckCardNode.moveAndTurnCard(movePosition: movePosition, duration: cardDuration, isFront: true, zPosition: cardIndexByType, afterCardNodeScale: .normal)
+                self.moveCardToPlayerCaptured(player: toPlayer, card: movingCard)
             }
             
             self.sortPlayerCapturedPiCards(player: anotherPlayer)
@@ -881,26 +935,20 @@ class GameScene: SKScene, ObservableObject {
     }
     
     private func moveBonusDeckCardsToTable(tableGroupIndex: Int) async  {
-        for i in (0..<self.deckCards.count).reversed() {
-            let deckCard = self.deckCards[i]
-            if deckCard.month == 0 {
-                // table에서 제거하고 winner에게 지급
-                guard let deckCardNode = childNode(withName: deckCard.id.uuidString) as? CardNode else { return  }
-                let cardIndexByGroup = self.tableCardGroups[tableGroupIndex].count
-                let zPosition = self.getTableCardZPosition(groupIndex: tableGroupIndex, cardIndexByGroup: cardIndexByGroup)
-                self.deckCards.removeLast()
-                //self.addTableCard(card: lastDeckCard) > 보너스카드는 직접 넣어줌
-                self.tableCardGroups[tableGroupIndex].append(deckCard)
-                
-                let movePosition = self.getTableCardPosition(groupIndex: tableGroupIndex, cardIndexByGroup: self.tableCardGroups[tableGroupIndex].count - 1)
-                deckCardNode.moveAndTurnCard(movePosition: movePosition, duration: cardDuration, isFront: true, zPosition: cardIndexByGroup, afterCardNodeScale: .normal)
-                
-                do { try await Task.sleep(for: .seconds(cardDuration))
-                } catch { print("error: \(error)")}
+        if self.deckCards.last?.month == 0 {
+            // table에서 제거하고 winner에게 지급
+            let deckCard = self.deckCards.removeLast()
+            self.moveCardToTable(card: deckCard, tableGroupIndex: tableGroupIndex)
+            
+            do { try await Task.sleep(for: .seconds(cardDuration))
+            } catch { print("error: \(error)")}
+            // 반복
+            Task {
+                await self.moveBonusDeckCardsToTable(tableGroupIndex: tableGroupIndex)
             }
-            else {
-                return
-            }
+        }
+        else {
+            return
         }
     }
     
@@ -978,7 +1026,7 @@ class GameScene: SKScene, ObservableObject {
     }
     
     private func getTableCardPosition(groupIndex: Int, cardIndexByGroup: Int) -> CGPoint {
-        //print("\(#function): \(groupIndex), \(cardIndexByGroup)")
+        print("\(#function): \(groupIndex), \(cardIndexByGroup)")
         let startX = round(size.width / 2)
         let startY = round(size.height / 2) - cardGap * 5
         
