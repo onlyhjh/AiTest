@@ -14,28 +14,17 @@ enum GameStatus {
     case wait
 }
 
-enum PopupStatus {
-    case showSelectCardPopup
-    case showSelectButtonPopup
-    case showAutoCloseMessagePopup
-    case showWinPopup
-    case showSpecialWinPopup
-    case showAlert
-    case closePopup
-}
+
 
 class GameData: ObservableObject {
-    @Published var gameStatus: GameStatus = .wait
-    @Published var deckCards: [Card] = []
+    static let playerNames = ["고니", "정마담", "고광렬", "짝귀", "평경장", "박무석", "아귀", "곽철용", "장동식", "함대길", "꼬장", "작은마담", "우사장", "송마담", "허미나", "영미", "도일출", "애꾸", "이상무", "물영감", "까치"]
     
+    @Published var gameStatus: GameStatus = .wait
+    var deckCards: [Card] = [] // saving test
+    var cardDuration: Double = 0.2
+    var winnerIndex = 0
+    var players: [Player] = [Player(index: 0), Player(index: 1), Player(index: 2)]
+    var currentPlayerIndex = 100 //100 대기
 }
 
-class PopupData: ObservableObject {
-    @Published var status: PopupStatus = .closePopup
-    var title: String? = nil
-    var message: String? = nil
-    var cards: [Card] = []
-    var players: [Player] = []
-    var buttonTexts: [String] = []
-    var completion: (_ select: Int) -> Void = { select in }
-}
+

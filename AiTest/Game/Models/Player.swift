@@ -15,7 +15,8 @@ final class Player {
     var capturedCardTypeGroup: [[Card]] = [[],[],[],[]]  // 0 gwang, 1 yeol, 2 dan, 3 pi
     var money: Int = 1000
     var goCount: Int = 0
-    var charactorIndex: Int = 0
+    var characterIndex: Int = 0 // -1 이면 사용자 사진
+    
     // 뻑
     var fuckCardMonths: [Int] = []
     // 흔들기

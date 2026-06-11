@@ -18,6 +18,7 @@ struct MainContentView: View {
     @StateObject private var popupData = PopupData()
     @State var isPresentedAlert: Bool = false
     @State var isPresentedPopup = false
+    @State var isPresentedSettingView = false
     @State var alertMessage: String? = nil
     @State var popupType: String? = nil
     @State var popupStatus: PopupStatus = .closePopup
@@ -44,6 +45,7 @@ struct MainContentView: View {
                 VStack(alignment: .center, spacing: 20, content: {
                     Button("start") {
                         self.gameData.deckCards = DeckFactory().generateFullDeck()
+                        self.gameData.players = [Player(index: 0), Player(index: 1), Player(index: 2)]
                         self.gameData.gameStatus = .start
                     }
                     .foregroundStyle(.white)
@@ -97,6 +99,21 @@ struct MainContentView: View {
             }
             .ignoresSafeArea(.all)
         }
+        .onAppear {
+            if let user = UserDefaults.standard.object(forKey: "user") as? Player {
+            }
+            else {
+                self.isPresentedSettingView = true
+            }
+        }
+        .fullScreenCover(isPresented: $isPresentedSettingView, onDismiss: {
+//            let encoder = JSONEncoder()
+//            if let encodedData = try? encoder.encode(self.gameData.players[0]) {
+//                UserDefaults.standard.set(encodedData, forKey: "user")
+//            }
+        }, content: {
+            SettingView(vm: SettingViewModel(gameData: self.gameData, isFirstLaunch: UserDefaults.standard.object(forKey: "player0")  == nil), isPresentedSettingView: $isPresentedSettingView)
+        })
         .fullScreenCover(isPresented: $isPresentedPopup, onDismiss: {
             self.popupData.status = .closePopup
         }, content: {
@@ -149,7 +166,7 @@ struct MainContentView: View {
             transaction.disablesAnimations = true
         }
         .alert(self.alertMessage ?? "", isPresented: self.$isPresentedAlert) {
-            Button("OK") { self.isPresentedAlert = false}
+            Button("OK") { self.isPresentedAlert = false }
         }
         .onChange(of: popupData.status) {
             print("\(#function) change popupStatus: \(popupData.status)")
@@ -172,21 +189,6 @@ struct MainContentView: View {
                 self.isPresentedAlert = true
             default:
                 isPresentedPopup = false
-            }
-        }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
             }
         }
     }
