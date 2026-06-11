@@ -9,9 +9,9 @@ import SwiftUI
 import SwiftData
 
 struct SettingView: View {
-    var vm: SettingViewModel
-    
-    @Binding var isPresentedSettingView: Bool
+    @Binding var isPresented: Bool
+    var gameData: GameData
+    var isFirstLaunch: Bool
     @State var isShowCharacterSettingView: Bool = false
     @State var userName: String = ""
     @State var imageName: String = ""
@@ -29,7 +29,7 @@ struct SettingView: View {
                 .ignoresSafeArea()
             
             VStack(spacing: 10) {
-                Text(self.vm.isFirstLaunch ? "🥹 환영합니다!!!" : "👩‍🏭 설정!")
+                Text(self.isFirstLaunch ? "🥹 환영합니다!!!" : "👩‍🏭 설정!")
                     .font(.largeTitle)
                     .bold()
                     .padding()
@@ -61,20 +61,37 @@ struct SettingView: View {
                     .background(.pink.opacity(0.1))
                     .cornerRadius(10)
                 }
-                Button("확인") {
-                    if userName.isEmpty {
-                        isPresentedAlert = true
-                        alertMessage = "이름을 입력해 주세요"
+                HStack(spacing: 10) {
+                    Button("확인") {
+                        if userName.isEmpty {
+                            isPresentedAlert = true
+                            alertMessage = "이름을 입력해 주세요"
+                        }
+                        else {
+                            self.gameData.players[0].name = userName
+                            self.gameData.players[0].imageName = imageName
+                            isPresented = false
+                        }
                     }
-                    else {
-                        isPresentedSettingView = false
+                    .foregroundStyle(.white)
+                    .padding()
+                    .frame(width: 150)
+                    .background(.green)
+                    .clipShape(Capsule())
+                    
+                    if !self.isFirstLaunch {
+                        Button("취소") {
+                            isPresented = false
+                        }
+                        .foregroundStyle(.white)
+                        .padding()
+                        .frame(width: 150)
+                        .background(.red)
+                        .clipShape(Capsule())
                     }
                 }
-                .foregroundStyle(.white)
-                .padding()
-                .frame(width: 150)
-                .background(.green)
-                .clipShape(Capsule())
+                .padding(10)
+                
                 Spacer()
                     .frame(height: 5)
             }
@@ -89,15 +106,13 @@ struct SettingView: View {
             Button("OK") { self.isPresentedAlert = false }
         }
         .onAppear{
-            characterIndex = self.vm.gameData.players[0].characterIndex
-            userName = self.vm.gameData.players[0].name
-            imageName = self.vm.gameData.players[0].imageName ?? ""
+            characterIndex = self.gameData.players[0].characterIndex
+            userName = self.gameData.players[0].name
+            imageName = self.gameData.players[0].imageName ?? ""
         }
         .onChange(of: characterIndex) {
             userName = GameData.playerNames[characterIndex]
-            imageName = "player_" + String(format: "%02d", characterIndex)
-            self.vm.gameData.players[0].name = userName
-            self.vm.gameData.players[0].imageName = imageName
+            imageName = Player.imageNamePrefix + String(format: "%02d", characterIndex)
         }
     }
 }

@@ -7,7 +7,10 @@
 
 import UIKit
 
-final class Player {
+struct Player: Codable {
+    static let imageNamePrefix = "player_"
+    static let unknownImageName = "player_unkown"
+    
     let index: Int
     var name: String = ""
     var imageName: String?
@@ -58,15 +61,5 @@ final class Player {
     
     init(index: Int) {
         self.index = index
-    }
-    
-    // 국진일 경우 type 강제 할당
-    func capture(card: Card, forcedType: CardType? = nil) {
-        self.capturedCardTypeGroup[forcedType?.rawValue ?? card.type.rawValue].append(card)
-    }
-    
-    // 국진일 경우 type 강제 할당
-    func getCapturedCardIndexByType(card: Card, forcedType: CardType? = nil) -> Int {
-        return self.capturedCardTypeGroup[forcedType?.rawValue ?? card.type.rawValue].firstIndex{ c in c.id == card.id } ?? 0
     }
 }

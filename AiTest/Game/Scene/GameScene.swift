@@ -11,7 +11,8 @@ import Combine
 
 
 class GameScene: SKScene, ObservableObject {
-
+    
+    @Binding var isPresentedSettingView: Bool
     var gameData: GameData
     var popupData: PopupData
     
@@ -27,7 +28,8 @@ class GameScene: SKScene, ObservableObject {
     
     private let emptyCardMonth: Int = -1 // 폭탄 후 빈 카드
     
-    init(size: CGSize, gameData: GameData, popupData: PopupData) {
+    init(size: CGSize, gameData: GameData, popupData: PopupData, isPresentedSettingView: Binding<Bool>) {
+        _isPresentedSettingView = isPresentedSettingView
         self.gameData = gameData
         self.popupData = popupData
         super.init(size: size)
@@ -69,6 +71,7 @@ class GameScene: SKScene, ObservableObject {
         
         for i in 0...2 {
             self.setPlayer(player: self.gameData.players[i])
+            print("??? \(self.gameData.players[i].name)")
         }
         
         Task {
@@ -214,7 +217,7 @@ class GameScene: SKScene, ObservableObject {
                     PopupManager.shared.showPopup(popupData: self.popupData, type: .selectWave, cards: sameMonthPlayerHandCards, players: [player]) { select in
                         //  흔들기 선택
                         if select == 0 {
-                            player.waveCount += 1
+                            self.gameData.players[self.gameData.currentPlayerIndex].waveCount += 1
                             //  흔들기 확인 팝업 다시 보이기
                             PopupManager.shared.showPopup(popupData: self.popupData, type: .wave, cards: sameMonthPlayerHandCards, players: [player]) { select in
                                 Task{
@@ -289,7 +292,7 @@ class GameScene: SKScene, ObservableObject {
                         PopupManager.shared.showPopup(popupData: self.popupData, type: .fuck, cards: fuckCards, players: [player], completion: {_ in })
                     }
                     
-                    player.fuckCardMonths.append(handCard.month)
+                    self.gameData.players[self.gameData.currentPlayerIndex].fuckCardMonths.append(handCard.month)
                     self.sortPlayerHandCards(playerIndex: self.gameData.currentPlayerIndex)
                 }
                 else {
@@ -391,7 +394,7 @@ class GameScene: SKScene, ObservableObject {
 
         for i in 0..<count {
             let card = Card(month: self.emptyCardMonth, type: .gwang, imageName: "hwatu_empty")
-            player.handCards.append(card)
+            self.gameData.players[self.gameData.currentPlayerIndex].handCards.append(card)
             let node = CardNode(name: card.id.uuidString, card: card, cardSize: cardSize, isFront: true)
             node.position = self.getPlayerHandCardPosition(playerIndex: player.index, cardIndex: player.handCards.count)
             node.zPosition = self.deckZPosition + CGFloat(i)
@@ -448,8 +451,8 @@ class GameScene: SKScene, ObservableObject {
         self.gameData.winnerIndex = winnerIndex
         
         let winner = self.gameData.players[winnerIndex]
-        let player1 = self.gameData.players[(winnerIndex + 1) % 3]
-        let player2 = self.gameData.players[(winnerIndex + 2) % 3]
+        var player1 = self.gameData.players[(winnerIndex + 1) % 3]
+        var player2 = self.gameData.players[(winnerIndex + 2) % 3]
         player1.scoreText = "피박, 광박 -12만냥"
         player2.scoreText = "피박 -5만냥"
         
@@ -462,8 +465,8 @@ class GameScene: SKScene, ObservableObject {
         self.gameData.winnerIndex = winnerIndex
         
         let winner = self.gameData.players[winnerIndex]
-        let player1 = self.gameData.players[(winnerIndex + 1) % 3]
-        let player2 = self.gameData.players[(winnerIndex + 2) % 3]
+        var player1 = self.gameData.players[(winnerIndex + 1) % 3]
+        var player2 = self.gameData.players[(winnerIndex + 2) % 3]
         player1.scoreText = "-10만냥"
         player2.scoreText = "-10만냥"
         
@@ -476,8 +479,8 @@ class GameScene: SKScene, ObservableObject {
         self.gameData.winnerIndex = winnerIndex
         
         let winner = self.gameData.players[winnerIndex]
-        let player1 = self.gameData.players[(winnerIndex + 1) % 3]
-        let player2 = self.gameData.players[(winnerIndex + 2) % 3]
+        var player1 = self.gameData.players[(winnerIndex + 1) % 3]
+        var player2 = self.gameData.players[(winnerIndex + 2) % 3]
         player1.scoreText = "-3만냥"
         player2.scoreText = "-3만냥"
         
@@ -569,9 +572,10 @@ class GameScene: SKScene, ObservableObject {
     private func moveCardToPlayerCaptured(player: Player, card: Card, forcedType: CardType? = nil) {
         print("\(#function) card: \(card.month), \(card.type)")
         guard let cardNode = self.childNode(withName: card.id.uuidString) as? CardNode else { return }
-        player.capture(card: card, forcedType: forcedType)
+        // 국진일 경우 type 강제 할당
+        self.gameData.players[player.index].capturedCardTypeGroup[forcedType?.rawValue ?? card.type.rawValue].append(card)
         cardNode.removeStroke()
-        let cardIndexByType = player.getCapturedCardIndexByType(card: card, forcedType: forcedType)
+        let cardIndexByType = player.capturedCardTypeGroup[forcedType?.rawValue ?? card.type.rawValue].firstIndex{ c in c.id == card.id } ?? 0
         let movePosition = self.getPlayerCapturedCardPosition(playerIndex: player.index, cardIndexByType: cardIndexByType, cardType: forcedType ?? card.type)
         cardNode.moveAndTurnCard(movePosition: movePosition, duration: self.gameData.cardDuration, isFront: true, zPosition: cardIndexByType, afterCardNodeScale: .normal)
     }
@@ -603,7 +607,7 @@ class GameScene: SKScene, ObservableObject {
     
     private func moveBonusPlayerHandBonusCardToPlayerCaptured(player: Player, handCard: Card) async {
         // 가지고 있는 카드를 수집카드로// 손에서 비움
-        player.handCards.removeAll { $0.id == handCard.id }
+        self.gameData.players[player.index].handCards.removeAll { $0.id == handCard.id }
         self.moveCardToPlayerCaptured(player: player, card: handCard)
         
         do { try await Task.sleep(for: .seconds(self.gameData.cardDuration))
@@ -671,7 +675,7 @@ class GameScene: SKScene, ObservableObject {
         let tableCardGroupIndex = self.getTableCardGroupIndex(cardMonth: tableCards.last!.month) ?? self.getEmptyTableCardGroupIndex(cardMonth: tableCards.last!.month)
 
         for deckOrHandCard in deckOrHandCards {
-            player.handCards.removeAll { $0.id == deckOrHandCard.id }
+            self.gameData.players[player.index].handCards.removeAll { $0.id == deckOrHandCard.id }
             self.deckCards.removeAll { $0.id == deckOrHandCard.id }
             
             // 국진 위치
@@ -768,7 +772,7 @@ class GameScene: SKScene, ObservableObject {
         let groupIndex = self.getTableCardGroupIndex(cardMonth: handCards[0].month) ?? self.getEmptyTableCardGroupIndex(cardMonth: handCards[0].month)
  
         for handCard in handCards {
-            player.handCards.removeAll { $0.id == handCard.id }
+            self.gameData.players[player.index].handCards.removeAll { $0.id == handCard.id }
             self.moveCardToTable(card: handCard)
         }
         
@@ -781,7 +785,7 @@ class GameScene: SKScene, ObservableObject {
         for handCard in handCards {
             guard let handCardNode = childNode(withName: handCard.id.uuidString) as? CardNode else { return }
             handCardNodes.append(handCardNode)
-            player.handCards.removeAll { $0.id == handCard.id }
+            self.gameData.players[player.index].handCards.removeAll { $0.id == handCard.id }
         }
         self.removeChildren(in: handCardNodes)
     }
@@ -818,7 +822,7 @@ class GameScene: SKScene, ObservableObject {
     private func sortPlayerCapturedPiCards(player: Player) {
         for capturedCard in player.capturedCardTypeGroup[CardType.pi.rawValue] {
             guard let capturedCardNode = childNode(withName: capturedCard.id.uuidString) as? CardNode else { return }
-            let cardIndexByType = player.getCapturedCardIndexByType(card: capturedCard)
+            let cardIndexByType = player.capturedCardTypeGroup[ capturedCard.type.rawValue].firstIndex{ c in c.id == capturedCard.id } ?? 0
             let movePosition = self.getPlayerCapturedCardPosition(playerIndex: player.index, cardIndexByType: cardIndexByType, cardType: capturedCard.type)
             // 동일위치 다시 그리기 방지 (위치값 소숫점 미세하게 변경 무시)
             if Int(movePosition.x) == Int(capturedCardNode.position.x) && Int(movePosition.y) == Int(capturedCardNode.position.y) {
@@ -914,7 +918,7 @@ class GameScene: SKScene, ObservableObject {
             }
             
             for movingCard in movingCards {
-                anotherPlayer.capturedCardTypeGroup[CardType.pi.rawValue].removeAll { $0.id == movingCard.id }
+                self.gameData.players[anotherPlayer.index].capturedCardTypeGroup[CardType.pi.rawValue].removeAll { $0.id == movingCard.id }
                 self.moveCardToPlayerCaptured(player: toPlayer, card: movingCard)
             }
             
@@ -1040,12 +1044,12 @@ class GameScene: SKScene, ObservableObject {
             startPosition.x = self.size.width / 2 + self.cardGap
             startPosition.y = self.cardGap
         }
-        else if let playerLabelNode = self.childNode(withName: "playerLabelNode_\(playerIndex)") as? SKLabelNode {
+        else if let playerLabelNode = self.childNode(withName: PlayerLabelNode.prefixName + "\(playerIndex)") as? SKLabelNode {
             startPosition.x = playerLabelNode.position.x + (playerLabelNode.bounds.size.width / 2) + self.cardGap
             startPosition.y = playerLabelNode.position.y - (self.cardSize.height * cardNodeScale) - self.cardGap
         }
         else {
-            print("\(#function) empty childNode: playerLabelNode_\(playerIndex)")
+            print("\(#function) empty childNode: \(PlayerLabelNode.prefixName)\(playerIndex)")
             startPosition.x = (playerIndex == 2 ? 0.0 : self.size.width / 2) + self.cardGap
             startPosition.y = size.height + (cardSize.height / 2) - self.cardGap
         }
@@ -1100,13 +1104,13 @@ class GameScene: SKScene, ObservableObject {
     
     private func setStrokeWithBlinkToPlayer() {
         for i in 0...2 {
-            if let playerImageNode = self.childNode(withName: "playerImageCropNode_\(i)"), let borderNode = playerImageNode.childNode(withName: "borderNode")  {
+            if let playerImageNode = self.childNode(withName: PlayerIconNode.prefixName + "\(i)"), let borderNode = playerImageNode.childNode(withName: PlayerIconNode.borderNodeName)  {
                 borderNode.removeAllChildren()
             }
             
-            guard let playerImageNode = self.childNode(withName: "playerImageCropNode_\(i)") else { return }
+            guard let playerImageNode = self.childNode(withName: PlayerIconNode.prefixName + "\(i)") else { return }
             let borderNode = SKShapeNode(rectOf: self.playerImageSize, cornerRadius: self.playerImageSize.width / 2)
-            borderNode.name = "borderNode"
+            borderNode.name = PlayerIconNode.borderNodeName
             borderNode.strokeColor = i == self.gameData.currentPlayerIndex ? .yellow : .white.withAlphaComponent(0.5)
             borderNode.lineWidth = 3.0
             borderNode.fillColor = .clear
@@ -1129,11 +1133,7 @@ class GameScene: SKScene, ObservableObject {
     private func setPlayer(player: Player) {
         let cardHeightWithGap = self.cardSize.height + self.cardGap
         var startPosition: CGPoint = .zero // 좌측 하단이 시작점
-        let playerLabelNode = SKLabelNode(fontNamed: "System")
-        playerLabelNode.name = "playerLabelNode_\(player.index)"
-        playerLabelNode.text = player.name + " (\(player.money)만냥)"
-        playerLabelNode.fontColor = .white.withAlphaComponent(0.7)
-        playerLabelNode.fontSize = 20
+        let playerLabelNode = PlayerLabelNode(player: player)
         
         switch player.index {
         case 1:
@@ -1147,29 +1147,8 @@ class GameScene: SKScene, ObservableObject {
             startPosition.y = cardHeightWithGap * 2 /*+ (self.playerImageSize.height / 2) - self.cardGap * 5*/
         }
 
-        let playerImageNode = SKSpriteNode(imageNamed: player.imageName ?? "player_unkown")
-        playerImageNode.name = "playerImageNode_\(player.index)"
-        playerImageNode.size = self.playerImageSize
-        let playerImageMaskPath = UIBezierPath(roundedRect: playerImageNode.frame, cornerRadius: self.cardSize.width / 2)
-        let playerImageMaskNode = SKShapeNode(path: playerImageMaskPath.cgPath)
-        playerImageMaskNode.name = "playerImageMaskNode_\(player.index)"
-        playerImageMaskNode.fillColor = .black
-        playerImageMaskNode.strokeColor = .white
-        playerImageMaskNode.lineWidth = 2
-        let borderNode = SKShapeNode(rectOf: self.playerImageSize, cornerRadius: self.playerImageSize.width / 2)
-        borderNode.name = "borderNode"
-        borderNode.strokeColor = .white.withAlphaComponent(0.5)
-        borderNode.lineWidth = 3.0
-        borderNode.fillColor = .clear
-        borderNode.zPosition = 100
-        let playerImageCropNode = SKCropNode()
-        playerImageCropNode.name = "playerImageCropNode_\(player.index)"
-        playerImageCropNode.maskNode = playerImageMaskNode
-        playerImageCropNode.addChild(playerImageNode)
-        playerImageCropNode.addChild(borderNode)
-        playerImageCropNode.position.x = startPosition.x + self.playerImageSize.height / 2
-        playerImageCropNode.position.y = startPosition.y + self.playerImageSize.height / 2
-        self.addChild(playerImageCropNode)
+        let playerIconNode = PlayerIconNode(player: player, position: startPosition, size: self.playerImageSize)
+        self.addChild(playerIconNode)
     
         playerLabelNode.position.x = startPosition.x + self.playerImageSize.width + playerLabelNode.bounds.width / 2
         playerLabelNode.position.y = startPosition.y + (player.index == 0 ? 0.0 : self.playerImageSize.height / 2)
@@ -1189,6 +1168,11 @@ class GameScene: SKScene, ObservableObject {
                 }
                 else {
                     print("\(#function) not your turn nor your card")
+                }
+            }
+            else if let playerIconNode = n as? PlayerIconNode {
+                if playerIconNode.name == PlayerIconNode.prefixName + "0" {
+                    self.isPresentedSettingView = true
                 }
             }
         }

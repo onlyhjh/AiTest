@@ -30,8 +30,7 @@ class RuleEngine {
     func simulate(state: GameState, action: Action) -> GameState {
         let newState = state
         
-        let player = newState.players[newState.currentPlayerIndex]
-        player.handCards.removeAll { $0 == action.handCard }
+        newState.players[newState.currentPlayerIndex].handCards.removeAll { $0 == action.handCard }
         
         newState.table.append(action.handCard)
         

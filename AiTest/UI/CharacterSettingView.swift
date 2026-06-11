@@ -38,7 +38,7 @@ struct CharacterSettingView: View {
                             Button(action: {
                                 tempCharacterIndex = i
                             }, label: {
-                                Image("player_" + String(format: "%02d", i))
+                                Image(Player.imageNamePrefix + String(format: "%02d", i))
                                     .resizable()
                                     .frame(width: 70, height: 70)
                                     .cornerRadius(33)

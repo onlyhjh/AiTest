@@ -26,7 +26,7 @@ public struct WinnerView: View {
         ZStack {
             VStack(spacing: 10) {
                 HStack(spacing: 10) {
-                    Image(players[0].imageName ?? "player_unkown")
+                    Image(players[0].imageName ?? Player.unknownImageName)
                         .resizable()
                         .frame(width: 50, height: 50)
                         .cornerRadius(25)
@@ -45,7 +45,7 @@ public struct WinnerView: View {
                         .font(.caption)
                 }
                 HStack(spacing: 10) {
-                    Image(players[1].imageName ?? "player_unkown")
+                    Image(players[1].imageName ?? Player.unknownImageName)
                         .resizable()
                         .frame(width: 34, height: 34)
                         .cornerRadius(17)
@@ -53,7 +53,7 @@ public struct WinnerView: View {
                         .font(.caption)
                 }
                 HStack(spacing: 10) {
-                    Image(players[2].imageName ?? "player_unkown")
+                    Image(players[2].imageName ?? Player.unknownImageName)
                         .resizable()
                         .frame(width: 34, height: 34)
                         .cornerRadius(17)

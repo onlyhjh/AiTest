@@ -41,7 +41,7 @@ public struct SelectButtonView: View {
 //                    }
 //                }
                 HStack(spacing: 10) {
-                    Image(players[0].imageName ?? "player_unkown")
+                    Image(players[0].imageName ?? Player.unknownImageName)
                         .resizable()
                         .frame(width: 50, height: 50)
                         .cornerRadius(25)
@@ -56,7 +56,7 @@ public struct SelectButtonView: View {
                 }
                 HStack(spacing: 0) {
                     ForEach(0..<cards.count) { index in
-                        Image(cards[index].imageName ?? "hwatu_back")
+                        Image(cards[index].imageName ?? Card.backImageName)
                             .resizable()
                             .frame(width: 50, height: 75)
                             .rotationEffect(.degrees(15 * Double(index % 2 == 0 ? 1 : -1)))

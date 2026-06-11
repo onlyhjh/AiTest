@@ -39,7 +39,7 @@ public struct SelectCardsView: View {
 //                    }
 //                }
                 HStack(spacing: 10) {
-                    Image(players.first?.imageName ?? "player_unkown")
+                    Image(players.first?.imageName ?? Player.unknownImageName)
                         .resizable()
                         .frame(width: 50, height: 50)
                         .cornerRadius(25)
@@ -47,7 +47,7 @@ public struct SelectCardsView: View {
                         Text(title)
                             .font(.title)
                     }
-                    Image(cards[0].imageName ?? "hwatu_back")
+                    Image(cards[0].imageName ?? Card.backImageName)
                         .resizable()
                         .frame(width: 25, height: 37)
                 }
@@ -60,7 +60,7 @@ public struct SelectCardsView: View {
                         Button {
                             buttonActions[index]()
                         } label: {
-                            Image(cards[index].imageName ?? "hwatu_back")
+                            Image(cards[index].imageName ?? Card.backImageName)
                                 .resizable()
                                 .frame(width: 50, height: 75)
                         }

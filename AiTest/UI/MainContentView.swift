@@ -24,7 +24,7 @@ struct MainContentView: View {
     @State var popupStatus: PopupStatus = .closePopup
     
     func getGameScene(size: CGSize) -> SKScene {
-        let scene = GameScene(size: size, gameData: self.gameData, popupData: self.popupData)
+        let scene = GameScene(size: size, gameData: self.gameData, popupData: self.popupData, isPresentedSettingView: $isPresentedSettingView)
         scene.scaleMode = .aspectFit
         return scene
     }
@@ -45,7 +45,6 @@ struct MainContentView: View {
                 VStack(alignment: .center, spacing: 20, content: {
                     Button("start") {
                         self.gameData.deckCards = DeckFactory().generateFullDeck()
-                        self.gameData.players = [Player(index: 0), Player(index: 1), Player(index: 2)]
                         self.gameData.gameStatus = .start
                     }
                     .foregroundStyle(.white)
@@ -100,19 +99,28 @@ struct MainContentView: View {
             .ignoresSafeArea(.all)
         }
         .onAppear {
-            if let user = UserDefaults.standard.object(forKey: "user") as? Player {
+            let range = 0...20
+            let randomThree = range.shuffled()
+            for i in 0...2 {
+                let randomIndex = randomThree[i]
+                self.gameData.players[i].characterIndex = randomIndex
+                self.gameData.players[i].name = GameData.playerNames[randomIndex]
+                self.gameData.players[i].imageName = Player.imageNamePrefix + String(format: "%02d", randomThree[i])
+            }
+            
+            if let encodedData = UserDefaults.standard.object(forKey: "user"), let user = try? JSONDecoder().decode(Player.self, from: encodedData as! Data) {
+                self.gameData.players[0] = user
             }
             else {
                 self.isPresentedSettingView = true
             }
         }
         .fullScreenCover(isPresented: $isPresentedSettingView, onDismiss: {
-//            let encoder = JSONEncoder()
-//            if let encodedData = try? encoder.encode(self.gameData.players[0]) {
-//                UserDefaults.standard.set(encodedData, forKey: "user")
-//            }
+            if let encodedData = try? JSONEncoder().encode(self.gameData.players[0]) {
+                UserDefaults.standard.set(encodedData, forKey: "user")
+            }
         }, content: {
-            SettingView(vm: SettingViewModel(gameData: self.gameData, isFirstLaunch: UserDefaults.standard.object(forKey: "player0")  == nil), isPresentedSettingView: $isPresentedSettingView)
+            SettingView(isPresented: $isPresentedSettingView, gameData: gameData, isFirstLaunch: UserDefaults.standard.object(forKey: "user")  == nil)
         })
         .fullScreenCover(isPresented: $isPresentedPopup, onDismiss: {
             self.popupData.status = .closePopup

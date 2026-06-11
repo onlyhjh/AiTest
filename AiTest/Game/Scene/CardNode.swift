@@ -16,6 +16,8 @@ enum CardNodeScale: CGFloat {
 
 class CardNode: SKSpriteNode {
     
+    static let borderNodeName = "borderNode"
+    
     let card: Card
     var isFront: Bool
     let frontImage: UIImage
@@ -24,7 +26,7 @@ class CardNode: SKSpriteNode {
         self.card = card
         self.isFront = isFront
         
-        self.frontImage = UIImage(named: card.imageName ?? "hwatu_back") ?? .hwatuBack
+        self.frontImage = UIImage(named: card.imageName ?? Card.backImageName) ?? .hwatuBack
         let texture = SKTexture(image: isFront ? frontImage : .hwatuBack)
         
         super.init(texture: texture, color: .clear, size: cardSize)
@@ -78,7 +80,7 @@ class CardNode: SKSpriteNode {
     func addStrokeWithBlink(size: CGSize) {
         self.removeAllChildren()
         let borderNode = SKShapeNode(rectOf: size, cornerRadius: 5)
-        borderNode.name = "borderNode"
+        borderNode.name = CardNode.borderNodeName
         borderNode.strokeColor = .yellow
         borderNode.lineWidth = 2.0
         borderNode.fillColor = .clear
