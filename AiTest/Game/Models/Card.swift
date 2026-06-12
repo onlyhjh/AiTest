@@ -18,6 +18,7 @@ enum CardType: Int, Codable {
 
 struct Card: Identifiable, Equatable, Hashable, Codable {
     static let backImageName = "hwatu_back"
+    static let emptyImageName = "hwatu_empty"
     
     let id = UUID()
     let month: Int

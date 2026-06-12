@@ -40,7 +40,7 @@ public struct WinnerView: View {
                                 .foregroundColor(.gray)
                     }
                 }
-                if let message = message {
+                if let message {
                     Text(message)
                         .font(.caption)
                 }

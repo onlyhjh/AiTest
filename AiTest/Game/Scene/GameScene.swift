@@ -33,6 +33,8 @@ class GameScene: SKScene, ObservableObject {
         self.gameData = gameData
         self.popupData = popupData
         super.init(size: size)
+        
+        self.backgroundColor = .tableBG ?? .green
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -40,9 +42,6 @@ class GameScene: SKScene, ObservableObject {
     }
     
     override func didMove(to view: SKView) {
-        self.backgroundColor = .tableBG ?? .black
-
-        // 화면 전환 이후 싸이즈 계산해야 함!
         DispatchQueue.main.async {
             self.cardSize = CGSize(width: self.size.height / 14, height: self.size.height / 14 * 1.5)
             self.playerImageSize = CGSize(width: self.cardSize.height, height: self.cardSize.height)
@@ -53,14 +52,15 @@ class GameScene: SKScene, ObservableObject {
     
     // 매 프레임마다 SwiftUI로부터 온 데이터를 감지하고 적용
     override func update(_ currentTime: TimeInterval) {
-        //print("\(#function) update gameStatus: \(gameData.gameStatus)")
         switch self.gameData.gameStatus {
         case .start:
             self.startGame()
-            self.gameData.gameStatus = .wait
+        case .updateUser:
+            self.refreshUserNodes()
         default:
             break
         }
+        self.gameData.gameStatus = .wait
     }
     
     private func startGame() {
@@ -399,7 +399,7 @@ class GameScene: SKScene, ObservableObject {
         let cardSize = CGSize(width: self.cardSize.width * scaleRate, height: self.cardSize.height * scaleRate)
 
         for i in 0..<count {
-            let card = Card(month: self.emptyCardMonth, type: .gwang, imageName: "hwatu_empty")
+            let card = Card(month: self.emptyCardMonth, type: .gwang, imageName: Card.emptyImageName)
             self.gameData.players[self.gameData.currentPlayerIndex].handCards.append(card)
             let node = CardNode(name: card.id.uuidString, card: card, cardSize: cardSize, isFront: true)
             node.position = self.getPlayerHandCardPosition(playerIndex: playerIndex, cardIndex: self.gameData.players[playerIndex].handCards.count)
@@ -514,8 +514,8 @@ class GameScene: SKScene, ObservableObject {
             case 1: // 매칭카드 1개 (
                 await self.moveDeckCardToMatchingTableCards(deckCard: deckCard, tableCards: matchingTableCards)
                 // 쪽인경우
-                if let khc = kissHandCard {
-                    PopupManager.shared.showPopup(popupData: popupData, type: .kiss, cards: [khc, deckCard], players: [player]) { select in
+                if let kissHandCard {
+                    PopupManager.shared.showPopup(popupData: popupData, type: .kiss, cards: [kissHandCard, deckCard], players: [player]) { select in
                         Task {
                             await self.moveMatchingCardsToPlayerCaptured(playerIndex: player.index, deckOrHandCards: [deckCard], tableCards: matchingTableCards){
                                 Task {
@@ -1134,6 +1134,14 @@ class GameScene: SKScene, ObservableObject {
 //                borderNode.run(blink)
 //            }
         }
+    }
+    
+    private func refreshUserNodes() {
+        guard let userLabelNode = self.childNode(withName: PlayerLabelNode.prefixName + "0") else { return }
+        guard let userIconNode = self.childNode(withName: PlayerIconNode.prefixName + "0") else { return }
+        self.removeChildren(in: [userLabelNode, userIconNode])
+        self.setPlayerNode(player: self.gameData.players[0])
+        self.setStrokeWithBlinkToPlayer()
     }
     
     private func setPlayerNode(player: Player) {

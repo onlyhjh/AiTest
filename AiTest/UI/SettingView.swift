@@ -10,7 +10,7 @@ import SwiftData
 
 struct SettingView: View {
     @Binding var isPresented: Bool
-    var gameData: GameData
+    @State var gameData: GameData
     var isFirstLaunch: Bool
     @State var isShowCharacterSettingView: Bool = false
     @State var userName: String = ""
@@ -62,6 +62,7 @@ struct SettingView: View {
                 }
                 HStack(spacing: 10) {
                     Button("확인") {
+                        hideKeyboard()
                         if userName.isEmpty {
                             isPresentedAlert = true
                             alertMessage = "이름을 입력해 주세요"
@@ -69,6 +70,7 @@ struct SettingView: View {
                         else {
                             self.gameData.players[0].name = userName
                             self.gameData.players[0].imageName = imageName
+                            self.gameData.players[0].characterIndex = characterIndex
                             isPresented = false
                         }
                     }
@@ -80,6 +82,7 @@ struct SettingView: View {
                     
                     if !self.isFirstLaunch {
                         Button("취소") {
+                            hideKeyboard()
                             isPresented = false
                         }
                         .foregroundStyle(.white)
@@ -107,10 +110,18 @@ struct SettingView: View {
         .onAppear{
             characterIndex = self.gameData.players[0].characterIndex
             userName = self.gameData.players[0].name
-            imageName = self.gameData.players[0].imageName ?? ""
+            imageName = self.gameData.players[0].imageName
         }
-        .onChange(of: characterIndex) {
-            userName = GameData.playerNames[characterIndex]
+        .onChange(of: characterIndex) { oldValue, newValue in
+            // 사용자가 수정한 이름이 기존이름을 그대로 쓰는지 확인, 다르면 사용자 설정 커스텀 이름 사용
+            
+            if GameData.playerNames.contains(where: { $0 == self.gameData.players[0].name }) || self.userName.isEmpty {
+                userName = GameData.playerNames[characterIndex]
+                self.gameData.players[0].name = userName
+            }
+            else {
+                userName = self.gameData.players[0].name
+            }
             imageName = Player.imageNamePrefix + String(format: "%02d", characterIndex)
         }
     }

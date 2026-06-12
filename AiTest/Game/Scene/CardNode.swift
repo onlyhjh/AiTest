@@ -41,11 +41,11 @@ class CardNode: SKSpriteNode {
     func moveAndTurnCard(movePosition: CGPoint, duration: TimeInterval = 0, isFront: Bool, zPosition: Int = 0, movingUpScale: CardNodeScale? = .zoom, afterCardNodeScale: CardNodeScale) {
         self.zPosition = 1000
         var sequnce: [SKAction] = []
-        if let mus = movingUpScale {
+        if let movingUpScale {
             let halfPosition = CGPoint(x: movePosition.x - ((movePosition.x - self.position.x) / 2), y: movePosition.y - ((movePosition.y - self.position.y) / 2))
             //print("\(#function) halfPosition: \(halfPosition) = movePosition: \(movePosition) - self.position: \(self.position)  ")
             let move1Action = SKAction.move(to: halfPosition, duration: duration / 2)
-            let scaleUpAction = SKAction.scale(to: mus.rawValue, duration: duration / 2)
+            let scaleUpAction = SKAction.scale(to: movingUpScale.rawValue, duration: duration / 2)
             let moveWithScaleUpAction = SKAction.group([move1Action, scaleUpAction])
             
             let move2Action = SKAction.move(to: movePosition, duration: duration / 2)

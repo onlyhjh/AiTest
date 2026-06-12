@@ -15,7 +15,7 @@ class PlayerIconNode: SKCropNode {
     init(player: Player, position: CGPoint, size: CGSize) {
         super.init()
         
-        let playerImageNode = SKSpriteNode(imageNamed: player.imageName ?? Player.unknownImageName)
+        let playerImageNode = SKSpriteNode(imageNamed: player.imageName)
         playerImageNode.name = "playerImageNode_\(player.index)"
         playerImageNode.size = size
         let playerImageMaskPath = UIBezierPath(roundedRect: playerImageNode.frame, cornerRadius: size.width / 2)

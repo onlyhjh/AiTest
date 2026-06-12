@@ -22,21 +22,32 @@ struct MainContentView: View {
     @State var alertMessage: String? = nil
     @State var popupType: String? = nil
     @State var popupStatus: PopupStatus = .closePopup
-    
-    func getGameScene(size: CGSize) -> SKScene {
-        let scene = GameScene(size: size, gameData: self.gameData, popupData: self.popupData, isPresentedSettingView: $isPresentedSettingView)
-        scene.scaleMode = .aspectFit
-        return scene
-    }
+    @State var scene: GameScene? // 다시 그리기 방지
+    @State var showSpriteView = false
     
     var body: some View {
         ZStack {
             Color.tableBG
                 .ignoresSafeArea(.all)
             GeometryReader { geometry in
-                VStack(alignment: .leading) {
-                    SpriteView(scene: self.getGameScene(size: geometry.size))
-                        .frame(width: geometry.size.width, height: geometry.size.height)
+                Group {
+                    if let scene, showSpriteView {
+                        SpriteView(scene: scene)
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                    }
+                    else {
+                        Color.pink
+                    }
+                }
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        if scene == nil {
+                            let newScene = GameScene(size: geometry.size, gameData: self.gameData, popupData: self.popupData, isPresentedSettingView: $isPresentedSettingView)
+                            newScene.scaleMode = .aspectFit
+                            scene = newScene
+                        }
+                        showSpriteView = true
+                    }
                 }
             }
             .edgesIgnoringSafeArea(.vertical)
@@ -108,7 +119,8 @@ struct MainContentView: View {
                 self.gameData.players[i].imageName = Player.imageNamePrefix + String(format: "%02d", randomThree[i])
             }
             
-            if let encodedData = UserDefaults.standard.object(forKey: "user"), let user = try? JSONDecoder().decode(Player.self, from: encodedData as! Data) {
+            if let encodedData = UserDefaults.standard.object(forKey: "user"),
+                let user = try? JSONDecoder().decode(Player.self, from: encodedData as! Data) {
                 self.gameData.players[0] = user
             }
             else {
@@ -116,8 +128,10 @@ struct MainContentView: View {
             }
         }
         .fullScreenCover(isPresented: $isPresentedSettingView, onDismiss: {
+            print("$isPresentedSettingView onDismiss")
             if let encodedData = try? JSONEncoder().encode(self.gameData.players[0]) {
                 UserDefaults.standard.set(encodedData, forKey: "user")
+                self.gameData.gameStatus = .updateUser
             }
         }, content: {
             SettingView(isPresented: $isPresentedSettingView, gameData: gameData, isFirstLaunch: UserDefaults.standard.object(forKey: "user")  == nil)

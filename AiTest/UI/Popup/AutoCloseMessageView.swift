@@ -35,12 +35,12 @@ public struct AutoCloseMessageView: View {
                         .resizable()
                         .frame(width: 50, height: 50)
                         .cornerRadius(25)
-                    if let title = title {
+                    if let title {
                         Text(title)
                             .font(.title)
                     }
                 }
-                if let message = message {
+                if let message {
                     Text(message)
                         .font(.caption)
                 }
