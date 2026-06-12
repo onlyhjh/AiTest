@@ -30,8 +30,7 @@ struct SettingView: View {
             
             VStack(spacing: 10) {
                 Text(self.isFirstLaunch ? "🥹 환영합니다!!!" : "👩‍🏭 설정!")
-                    .font(.largeTitle)
-                    .bold()
+                    .font(.title)
                     .padding()
                 Text("이름과 캐릭터를 설정하세요")
                     .font(.caption)

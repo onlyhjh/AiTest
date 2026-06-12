@@ -13,7 +13,7 @@ struct Player: Codable {
     
     let index: Int
     var name: String = ""
-    var imageName: String?
+    var imageName: String
     var handCards: [Card] = []
     var capturedCardTypeGroup: [[Card]] = [[],[],[],[]]  // 0 gwang, 1 yeol, 2 dan, 3 pi
     var money: Int = 1000
@@ -61,5 +61,6 @@ struct Player: Codable {
     
     init(index: Int) {
         self.index = index
+        self.imageName = Player.unknownImageName
     }
 }
