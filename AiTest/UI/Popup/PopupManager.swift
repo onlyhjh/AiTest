@@ -56,7 +56,7 @@ class PopupManager {
                 popupData.message = "가져올 카드를 선택하삼~ 🥸"
                 popupData.status = .showSelectCardPopup
             case .kiss:
-                popupData.title = "쪽!!!"
+                popupData.title = "아싸 쪽!!!"
                 popupData.message = "피 한장씩 내놔~ 😘"
                 popupData.status = .showAutoCloseMessagePopup
             case .boom:
@@ -78,27 +78,27 @@ class PopupManager {
                 popupData.message = "어질어질 하지~ 😵‍💫"
                 popupData.status = .showAutoCloseMessagePopup
             case .fuck:
-                popupData.title = "뻑!!!"
+                popupData.title = "오메 뻑!!!"
                 popupData.message = "아놔~ 🤯"
                 popupData.status = .showAutoCloseMessagePopup
             case .deckBonus:
-                popupData.title = "득템 보너스!!!"
-                popupData.message = "아싸 쌍피 추가요~ 🤭"
+                popupData.title = "아싸 보너스!!!"
+                popupData.message = "쌍피 추가요~ 🤭"
                 popupData.status = .showAutoCloseMessagePopup
             case .handBonus:
                 popupData.title = "숨겨둔 보너스!!!"
                 popupData.message = "오늘 운빨이 좋구먼~ 🤭"
                 popupData.status = .showAutoCloseMessagePopup
             case .firstFuck:
-                popupData.title = "첫뻑!!!"
+                popupData.title = "오메 첫뻑!!!"
                 popupData.message = "웃프다~ 일단 3만냥씩 내놔~ 😂"
                 popupData.status = .showAutoCloseMessagePopup
             case .secondFuck:
-                popupData.title = "2연속 뻑!!!"
+                popupData.title = "오메메 2연속 뻑!!!"
                 popupData.message = "대단하다~ 일단 따블로 6만냥씩 받자~ 😂"
                 popupData.status = .showAutoCloseMessagePopup
             case .ddadak:
-                popupData.title = "따닥!!!"
+                popupData.title = "아싸 따닥!!!"
                 popupData.message = "피 한장씩 내놔~ 🤩"
                 popupData.status = .showAutoCloseMessagePopup
             case .threeTableCards:

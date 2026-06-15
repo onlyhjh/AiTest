@@ -55,8 +55,8 @@ class GameScene: SKScene, ObservableObject {
         switch self.gameData.gameStatus {
         case .start:
             self.startGame()
-        case .updateUser:
-            self.refreshUserNodes()
+        case .updatePlayers:
+            self.updatePlayers()
         default:
             break
         }
@@ -1156,11 +1156,13 @@ class GameScene: SKScene, ObservableObject {
         }
     }
     
-    private func refreshUserNodes() {
-        guard let userLabelNode = self.childNode(withName: PlayerLabelNode.prefixName + "0") else { return }
-        guard let userIconNode = self.childNode(withName: PlayerIconNode.prefixName + "0") else { return }
-        self.removeChildren(in: [userLabelNode, userIconNode])
-        self.setPlayerNode(player: self.gameData.players[0])
+    private func updatePlayers() { 
+        for i in 0...2 {
+            guard let playerLabelNode = self.childNode(withName: PlayerLabelNode.prefixName + "\(i)") else { return }
+            guard let playerIconNode = self.childNode(withName: PlayerIconNode.prefixName + "\(i)") else { return }
+            self.removeChildren(in: [playerLabelNode, playerIconNode])
+            self.setPlayerNode(player: self.gameData.players[i])
+        }
         self.setStrokeWithBlinkToPlayer()
     }
     

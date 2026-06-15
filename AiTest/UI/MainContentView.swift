@@ -110,20 +110,14 @@ struct MainContentView: View {
             .ignoresSafeArea(.all)
         }
         .onAppear {
-            let range = 0...20
-            let randomThree = range.shuffled()
-            for i in 0...2 {
-                let randomIndex = randomThree[i]
-                self.gameData.players[i].characterIndex = randomIndex
-                self.gameData.players[i].name = GameData.playerNames[randomIndex]
-                self.gameData.players[i].imageName = Player.imageNamePrefix + String(format: "%02d", randomThree[i])
-            }
-            
             if let encodedData = UserDefaults.standard.object(forKey: "user"),
                 let user = try? JSONDecoder().decode(Player.self, from: encodedData as! Data) {
                 self.gameData.players[0] = user
+                self.gameData.players[1] = PlayerFactory().getRandomPlayer(playerIndex: 1, without: [user.characterIndex])
+                self.gameData.players[2] = PlayerFactory().getRandomPlayer(playerIndex: 2, without: [user.characterIndex, self.gameData.players[1].characterIndex])
             }
             else {
+                self.gameData.players = PlayerFactory().getRandomPlayers()
                 self.isPresentedSettingView = true
             }
         }
@@ -131,7 +125,7 @@ struct MainContentView: View {
             print("$isPresentedSettingView onDismiss")
             if let encodedData = try? JSONEncoder().encode(self.gameData.players[0]) {
                 UserDefaults.standard.set(encodedData, forKey: "user")
-                self.gameData.gameStatus = .updateUser
+                self.gameData.gameStatus = .updatePlayers
             }
         }, content: {
             SettingView(isPresented: $isPresentedSettingView, gameData: gameData, isFirstLaunch: UserDefaults.standard.object(forKey: "user")  == nil)

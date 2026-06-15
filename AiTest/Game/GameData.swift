@@ -12,7 +12,7 @@ enum GameStatus {
     case start
     case next
     case wait
-    case updateUser
+    case updatePlayers
 }
 
 

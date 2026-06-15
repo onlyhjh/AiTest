@@ -71,6 +71,15 @@ struct SettingView: View {
                             self.gameData.players[0].name = userName
                             self.gameData.players[0].imageName = imageName
                             self.gameData.players[0].characterIndex = characterIndex
+                            
+                            // 컴퓨터 player와 캐릭터 겹치지 안도록 조정
+                            if self.gameData.players[1].characterIndex == characterIndex {
+                                self.gameData.players[1] = PlayerFactory().getRandomPlayer(playerIndex: 1, without: [characterIndex, self.self.gameData.players[2].characterIndex])
+                            }
+                            if self.gameData.players[2].characterIndex == characterIndex {
+                                self.gameData.players[2] = PlayerFactory().getRandomPlayer(playerIndex: 2, without: [characterIndex, self.gameData.players[1].characterIndex])
+                            }
+                            
                             isPresented = false
                         }
                     }
@@ -114,7 +123,6 @@ struct SettingView: View {
         }
         .onChange(of: characterIndex) { oldValue, newValue in
             // 사용자가 수정한 이름이 기존이름을 그대로 쓰는지 확인, 다르면 사용자 설정 커스텀 이름 사용
-            
             if GameData.playerNames.contains(where: { $0 == self.gameData.players[0].name }) || self.userName.isEmpty {
                 userName = GameData.playerNames[characterIndex]
                 self.gameData.players[0].name = userName
