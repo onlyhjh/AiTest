@@ -166,10 +166,13 @@ struct MainContentView: View {
                     isPresentedPopup = false
                 })
             case .showAutoCloseMessagePopup:
-                AutoCloseMessageView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players,cards: self.popupData.cards, autoAction: {
-                    isPresentedPopup = false
-                    self.popupData.completion(0)
-                })
+                AutoCloseMessageView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players,cards: self.popupData.cards)
+                    .onAppear{
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                            isPresentedPopup = false
+                            self.popupData.completion(0)
+                        }
+                    }
             case .showWinPopup:
                 WinnerView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players, closeAction: {
                     isPresentedPopup = false

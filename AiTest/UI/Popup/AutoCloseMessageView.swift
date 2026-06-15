@@ -8,23 +8,18 @@
 import SwiftUI
 
 public struct AutoCloseMessageView: View {
-    
-    let autoCloseTimeInterval: TimeInterval = 3.0
+
     var title: String?
     var message: String?
     var players: [Player]
     var cards: [Card]
     
     // 😎 😭 🥶😱🤯😭😘🤩💀
-    init(title: String?, message: String?, players: [Player], cards: [Card], autoAction: @escaping () -> Void) {
+    init(title: String?, message: String?, players: [Player], cards: [Card]) {
         self.title = title
         self.message = message
         self.players = players
         self.cards = cards
-        
-        DispatchQueue.main.asyncAfter(deadline:  .now() + autoCloseTimeInterval) {
-            autoAction()
-        }
     }
     
     public var body: some View {
