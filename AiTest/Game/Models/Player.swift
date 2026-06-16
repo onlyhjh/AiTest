@@ -12,23 +12,23 @@ struct Player: Codable {
     static let unknownImageName = "player_unkown"
     
     let index: Int
+    var characterIndex: Int = 0
     var name: String = ""
-    var imageName: String
+    var imageName: String = ""
+    
     var handCards: [Card] = []
     var capturedCardTypeGroup: [[Card]] = [[],[],[],[]]  // 0 gwang, 1 yeol, 2 dan, 3 pi
     var money: Int = 1000
     var goCount: Int = 0
-    var characterIndex: Int = 0 // -1 이면 사용자 사진
-    
-    // 뻑
-    var fuckCardMonths: [Int] = []
-    // 흔들기
-    var waveCount = 0
+    var lastGoScore = 0
+    var fuckCardMonths: [Int] = [] // 뻑
+    var waveCount = 0 // 흔들기
     var scoreText: String?
     
     // MARK: - 계산 프로퍼티
     var piCount: Int {
-        capturedCardTypeGroup[CardType.pi.rawValue].count
+        // 쌍피는 2점
+        capturedCardTypeGroup[CardType.pi.rawValue].count + capturedCardTypeGroup[CardType.pi.rawValue].count(where: { $0.isDoublePi == true })
     }
     
     var ttiCount: Int {
@@ -40,18 +40,19 @@ struct Player: Codable {
     }
     
     var gwangCount: Int {
-        capturedCardTypeGroup[CardType.gwang.rawValue].count
+        // 3점일때는 비 제외
+        capturedCardTypeGroup[CardType.gwang.rawValue].count == 3 && capturedCardTypeGroup[CardType.gwang.rawValue].contains(where: { $0.month == 12 }) ? 2 : capturedCardTypeGroup[CardType.gwang.rawValue].count
     }
     
-    var choDanCount: Int {
+    var chodanCount: Int {
         capturedCardTypeGroup[CardType.tti.rawValue].count(where: { $0.isChoDan == true })
     }
     
-    var hongDanCount: Int {
+    var hongdanCount: Int {
         capturedCardTypeGroup[CardType.tti.rawValue].count(where: { $0.isChoDan == true })
     }
     
-    var chungDanCount: Int {
+    var chungdanCount: Int {
         capturedCardTypeGroup[CardType.tti.rawValue].count(where: { $0.isChungDan == true })
     }
     
@@ -61,6 +62,5 @@ struct Player: Codable {
     
     init(index: Int) {
         self.index = index
-        self.imageName = Player.unknownImageName
     }
 }

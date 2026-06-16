@@ -13,12 +13,16 @@ enum PopupType {
     case ddadak             // 따닥
     case selectCard         // 카드 선택
     case selectWave         // 흔들기 선택
+    case selectGoOrStop     // 고, 스톱 선택
     case selectGukjin       // 국진 선택
     case threeTableCards    // 한번에 3장 가져오기
     case threeTableCardsWithPlayerFuck // 자뻑 (한번에 3장 가져오기)
+    case go                 // 고
+    case stop               // 스톱
     case wave               // 흔들기
-    case boom               // 폭탄
+    case bomb               // 폭탄
     case kiss               // 쪽
+    case emptyTable         // 쓸
     case deckBonus          // 보너스 득
     case handBonus          // 손에 있는 보너스 카드
     case fuck               // 기본 뻑
@@ -59,7 +63,11 @@ class PopupManager {
                 popupData.title = "아싸 쪽!!!"
                 popupData.message = "피 한장씩 내놔~ 😘"
                 popupData.status = .showAutoCloseMessagePopup
-            case .boom:
+            case .emptyTable:
+                popupData.title = "아싸 쓸!!!"
+                popupData.message = "피 한장씩 더 내놔~ 😘"
+                popupData.status = .showAutoCloseMessagePopup
+            case .bomb:
                 popupData.title = "폭탄!!!"
                 popupData.message = "피 한장씩 내놔~ 🫣"
                 popupData.status = .showAutoCloseMessagePopup
@@ -68,6 +76,11 @@ class PopupManager {
                 popupData.message = "흔들까? 아님 그냥? 😵‍💫"
                 popupData.status = .showSelectButtonPopup
                 popupData.buttonTexts = ["흔들기", "그냥치기"]
+            case .selectGoOrStop:
+                popupData.title = "고 or 스톱???"
+                popupData.message = "고할까 아님 안전하게 스톱??? 😵‍💫"
+                popupData.status = .showSelectButtonPopup
+                popupData.buttonTexts = ["고", "스톱"]
             case .selectGukjin:
                 popupData.title = "국진 쌍피 선택!!!"
                 popupData.message = "쌍피로 쓸까? 🥸"
@@ -108,6 +121,14 @@ class PopupManager {
             case .threeTableCardsWithPlayerFuck:
                 popupData.title = "아싸 자뻑이었던거 알지!!!"
                 popupData.message = "피 두장씩 내놔~ 🥳"
+                popupData.status = .showAutoCloseMessagePopup
+            case .go:
+                popupData.title = "못먹어도 고!!!"
+                popupData.message = "각오해~ 🥶"
+                popupData.status = .showAutoCloseMessagePopup
+            case .stop:
+                popupData.title = "안전하게 스톱!!!"
+                popupData.message = "돈 준비들 하셔~ 🥹"
                 popupData.status = .showAutoCloseMessagePopup
             default:
                 break

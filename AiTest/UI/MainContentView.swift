@@ -12,7 +12,6 @@ import GameplayKit
 
 struct MainContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
 
     @StateObject private var gameData = GameData()
     @StateObject private var popupData = PopupData()
@@ -64,7 +63,7 @@ struct MainContentView: View {
                     .clipShape(Capsule())
                     Button("save1") {
                         if !self.gameData.deckCards.isEmpty, let encoded = try? JSONEncoder().encode(self.gameData.deckCards) {
-                                UserDefaults.standard.set(encoded, forKey: "deckCards")
+                            UserDefaults.standard.deckCards1 = encoded
                             self.alertMessage = "save success"
                             self.isPresentedAlert = true
                         }
@@ -75,7 +74,7 @@ struct MainContentView: View {
                     .clipShape(Capsule())
                     Button("save2") {
                         if !self.gameData.deckCards.isEmpty, let encoded = try? JSONEncoder().encode(self.gameData.deckCards) {
-                                UserDefaults.standard.set(encoded, forKey: "deckCards2")
+                            UserDefaults.standard.deckCards2 = encoded
                             self.alertMessage = "save success"
                             self.isPresentedAlert = true
                         }
@@ -85,7 +84,7 @@ struct MainContentView: View {
                     .background(.red)
                     .clipShape(Capsule())
                     Button("load1") {
-                        if let data = UserDefaults.standard.data(forKey: "deckCards"), let deckCards = try? JSONDecoder().decode([Card].self, from: data) {
+                        if let data = UserDefaults.standard.deckCards1, let deckCards = try? JSONDecoder().decode([Card].self, from: data) {
                             self.gameData.deckCards = deckCards
                             self.gameData.gameStatus = .start
                         }
@@ -95,7 +94,7 @@ struct MainContentView: View {
                     .background(.blue)
                     .clipShape(Capsule())
                     Button("load2") {
-                        if let data = UserDefaults.standard.data(forKey: "deckCards2"), let deckCards = try? JSONDecoder().decode([Card].self, from: data) {
+                        if let data = UserDefaults.standard.deckCards2, let deckCards = try? JSONDecoder().decode([Card].self, from: data) {
                             self.gameData.deckCards = deckCards
                             self.gameData.gameStatus = .start
                         }
@@ -110,8 +109,7 @@ struct MainContentView: View {
             .ignoresSafeArea(.all)
         }
         .onAppear {
-            if let encodedData = UserDefaults.standard.object(forKey: "user"),
-                let user = try? JSONDecoder().decode(Player.self, from: encodedData as! Data) {
+            if let encodedData = UserDefaults.standard.user, let user = try? JSONDecoder().decode(Player.self, from: encodedData) {
                 self.gameData.players[0] = user
                 self.gameData.players[1] = PlayerFactory().getRandomPlayer(playerIndex: 1, without: [user.characterIndex])
                 self.gameData.players[2] = PlayerFactory().getRandomPlayer(playerIndex: 2, without: [user.characterIndex, self.gameData.players[1].characterIndex])
@@ -124,11 +122,11 @@ struct MainContentView: View {
         .fullScreenCover(isPresented: $isPresentedSettingView, onDismiss: {
             print("$isPresentedSettingView onDismiss")
             if let encodedData = try? JSONEncoder().encode(self.gameData.players[0]) {
-                UserDefaults.standard.set(encodedData, forKey: "user")
+                UserDefaults.standard.user = encodedData
                 self.gameData.gameStatus = .updatePlayers
             }
         }, content: {
-            SettingView(isPresented: $isPresentedSettingView, gameData: gameData, isFirstLaunch: UserDefaults.standard.object(forKey: "user")  == nil)
+            SettingView(isPresented: $isPresentedSettingView, gameData: gameData, isFirstLaunch: UserDefaults.standard.user == nil)
         })
         .fullScreenCover(isPresented: $isPresentedPopup, onDismiss: {
             self.popupData.status = .closePopup
@@ -215,5 +213,4 @@ struct MainContentView: View {
 
 #Preview {
     MainContentView()
-        .modelContainer(for: Item.self, inMemory: true)
 }

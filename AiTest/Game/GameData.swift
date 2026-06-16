@@ -25,7 +25,7 @@ class GameData: ObservableObject {
     var cardDuration: Double = 0.2
     var winnerIndex = 0
     var players: [Player] = [Player(index: 0), Player(index: 1), Player(index: 2)]
-    var currentPlayerIndex = 100 //100 대기
+    var currentPlayerIndex = 0
 }
 
 
