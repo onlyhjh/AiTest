@@ -13,18 +13,20 @@ public struct SelectButtonView: View {
     var message: String?
     var players: [Player]
     var cards: [Card]
-    var buttonTexts: [String]
-    let buttonActions: [() -> Void]
-    var closeAction: (() -> Void)
+    var button1Text: String
+    var button2Text: String
+    var button1Action: (() -> Void)
+    var button2Action: (() -> Void)
     
-    init(title: String?, message: String?, players: [Player], cards: [Card], buttonTexts: [String], buttonActions: [() -> Void], closeAction: @escaping () -> Void) {
+    init(title: String?, message: String?, players: [Player], cards: [Card], button1Text: String, button2Text: String, button1Action: @escaping () -> Void, button2Action: @escaping () -> Void) {
         self.title = title
         self.message = message
         self.players = players
         self.cards = cards
-        self.buttonTexts = buttonTexts
-        self.buttonActions = buttonActions
-        self.closeAction = closeAction
+        self.button1Text = button1Text
+        self.button2Text = button2Text
+        self.button1Action = button1Action
+        self.button2Action = button2Action
     }
     
     public var body: some View {
@@ -63,16 +65,23 @@ public struct SelectButtonView: View {
                     }
                 }
                 HStack(spacing: 20) {
-                    ForEach(0..<buttonTexts.count) { index in
-                        Button(buttonTexts[index]) {
-                            buttonActions[index]()
-                        }
-                        .foregroundStyle(.white)
-                        .padding()
-                        .frame(width: 150)
-                        .background(index % 2 == 0 ? .red : .green)
-                        .clipShape(Capsule())
+                    Button(button1Text) {
+                        button1Action()
                     }
+                    .foregroundStyle(.white)
+                    .padding()
+                    .frame(width: 150)
+                    .background(.red)
+                    .clipShape(Capsule())
+                    
+                    Button(button2Text) {
+                        button2Action()
+                    }
+                    .foregroundStyle(.white)
+                    .padding()
+                    .frame(width: 150)
+                    .background(.green)
+                    .clipShape(Capsule())
                 }
             }
             .padding(20)

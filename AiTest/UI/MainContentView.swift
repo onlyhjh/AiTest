@@ -148,14 +148,12 @@ struct MainContentView: View {
                     isPresentedPopup = false
                 })
             case .showSelectButtonPopup:
-                SelectButtonView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players, cards: self.popupData.cards, buttonTexts: self.popupData.buttonTexts, buttonActions: [{
+                SelectButtonView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players, cards: self.popupData.cards, button1Text: self.popupData.button1Text, button2Text: self.popupData.button2Text, button1Action: {
                     isPresentedPopup = false
                     self.popupData.completion(0)
-                }, {
+                }, button2Action : {
                     isPresentedPopup = false
                     self.popupData.completion(1)
-                }], closeAction: {
-                    isPresentedPopup = false
                 })
             case .showAutoCloseMessagePopup:
                 AutoCloseMessageView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players,cards: self.popupData.cards)
@@ -165,6 +163,11 @@ struct MainContentView: View {
                             self.popupData.completion(0)
                         }
                     }
+            case .showMessagePopup:
+                MessageView(title: self.popupData.title, message: self.popupData.message, buttonText: self.popupData.button1Text, buttonAction: {
+                    isPresentedPopup = false
+                    self.popupData.completion(0)
+                })
             case .showWinPopup:
                 WinnerView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players, closeAction: {
                     isPresentedPopup = false
@@ -191,21 +194,13 @@ struct MainContentView: View {
             self.popupStatus = popupData.status
             
             switch self.popupStatus {
-            case .showSelectCardPopup:
-                self.isPresentedPopup = true
-            case .showSelectButtonPopup:
-                self.isPresentedPopup = true
-            case .showSpecialWinPopup:
-                self.isPresentedPopup = true
-            case .showWinPopup:
-                self.isPresentedPopup = true
-            case .showAutoCloseMessagePopup:
-                self.isPresentedPopup = true
+            case .closePopup:
+                self.isPresentedPopup = false
             case .showAlert:
                 self.alertMessage = self.popupData.message
                 self.isPresentedAlert = true
             default:
-                isPresentedPopup = false
+                self.isPresentedPopup = true
             }
         }
     }

@@ -12,6 +12,7 @@ enum PopupStatus {
     case showSelectCardPopup
     case showSelectButtonPopup
     case showAutoCloseMessagePopup
+    case showMessagePopup
     case showWinPopup
     case showSpecialWinPopup
     case showAlert
@@ -24,6 +25,7 @@ class PopupData: ObservableObject {
     var message: String? = nil
     var cards: [Card] = []
     var players: [Player] = []
-    var buttonTexts: [String] = []
+    var button1Text: String = ""
+    var button2Text: String = ""
     var completion: (_ select: Int) -> Void = { select in }
 }

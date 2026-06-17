@@ -11,6 +11,7 @@ class PlayerIconNode: SKCropNode {
     
     static let prefixName = "playerIconNode_"
     static let borderNodeName = "borderNode"
+    static let blinkBorderName = "blinkBorderNode"
     
     init(player: Player, position: CGPoint, size: CGSize) {
         super.init()

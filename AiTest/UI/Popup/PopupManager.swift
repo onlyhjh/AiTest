@@ -10,6 +10,7 @@ import SwiftUI
 enum PopupType {
     case chongtongWin       // 총통 승리
     case win                // 승리
+    case nagari             // 나가리
     case ddadak             // 따닥
     case selectCard         // 카드 선택
     case selectWave         // 흔들기 선택
@@ -51,6 +52,11 @@ class PopupManager {
                 popupData.title = "아싸 승!!!"
                 popupData.message = message ?? "알아서 언넝 내놔~ 🥳"
                 popupData.status = .showWinPopup
+            case .nagari:
+                popupData.title = "나가리!!!"
+                popupData.message = message ?? "다음판은 두배여~ 🥶"
+                popupData.button1Text = "확인"
+                popupData.status = .showMessagePopup
             case .thirdFuckWin:
                 popupData.title = "뻑 3번 승!!!"
                 popupData.message = "웃프게 이겼네.. 뭐여 이건~ 😂"
@@ -75,17 +81,20 @@ class PopupManager {
                 popupData.title = "흔들기!!!"
                 popupData.message = "흔들까? 아님 그냥? 😵‍💫"
                 popupData.status = .showSelectButtonPopup
-                popupData.buttonTexts = ["흔들기", "그냥치기"]
+                popupData.button1Text = "흔들기"
+                popupData.button2Text = "그냥치기"
             case .selectGoOrStop:
                 popupData.title = "고 or 스톱???"
                 popupData.message = "고할까 아님 안전하게 스톱??? 😵‍💫"
                 popupData.status = .showSelectButtonPopup
-                popupData.buttonTexts = ["고", "스톱"]
+                popupData.button1Text = "고"
+                popupData.button2Text = "스톱"
             case .selectGukjin:
                 popupData.title = "국진 쌍피 선택!!!"
                 popupData.message = "쌍피로 쓸까? 🥸"
                 popupData.status = .showSelectButtonPopup
-                popupData.buttonTexts = ["쌍피로", "열끗으로"]
+                popupData.button1Text = "쌍피로"
+                popupData.button2Text = "열끗으로"
             case .wave:
                 popupData.title = "흔들었으!!!"
                 popupData.message = "어질어질 하지~ 😵‍💫"

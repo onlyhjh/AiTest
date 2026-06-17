@@ -12,6 +12,7 @@ enum UserDefaultKey: String, CaseIterable {
     case testDeckCards2
     case user
     case lastWinIndex
+    case wasNagari
 }
 
 extension UserDefaults {
@@ -33,5 +34,10 @@ extension UserDefaults {
     var lastWinnerIndex: Int? {
         get { value(forKey: UserDefaultKey.lastWinIndex.rawValue) as? Int }
         set { setValue(newValue, forKey: UserDefaultKey.lastWinIndex.rawValue)}
+    }
+    
+    var wasNagari: Bool? {
+        get { value(forKey: UserDefaultKey.wasNagari.rawValue) as? Bool }
+        set { setValue(newValue, forKey: UserDefaultKey.wasNagari.rawValue)}
     }
 }

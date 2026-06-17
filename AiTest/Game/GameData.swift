@@ -26,6 +26,7 @@ class GameData: ObservableObject {
     var winnerIndex = 0
     var players: [Player] = [Player(index: 0), Player(index: 1), Player(index: 2)]
     var currentPlayerIndex = 0
+    var isNagari = false
 }
 
 

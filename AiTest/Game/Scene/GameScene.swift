@@ -172,8 +172,12 @@ class GameScene: SKScene, ObservableObject {
     
     private func doPlay() {
         print("\(#function) playerIndex:\(self.gameData.currentPlayerIndex)")
-        self.sortPlayerHandCards(playerIndex: self.gameData.currentPlayerIndex) // 플레이어패와 테이블패 매칭 갱신
-        self.setStrokeWithBlinkToPlayers()
+        //  이전 플레이어도 정리해 줘야 함
+        for i in 0...2 {
+            self.sortPlayerHandCards(playerIndex: i)
+            self.setStrokeWithBlinkToPlayerNode(playerIndex: i)
+        }
+        
         Task {
             do { try await Task.sleep(for: .seconds(1.0))
             } catch { print("error: \(error)")}
@@ -189,6 +193,14 @@ class GameScene: SKScene, ObservableObject {
     }
     
     private func doNextPlay() {
+        // 마지막장이면 나가리>> 다음판 두배
+        if self.gameData.players[0].handCards.isEmpty && self.gameData.players[1].handCards.isEmpty && self.gameData.players[2].handCards.isEmpty {
+            PopupManager.shared.showPopup(popupData: self.popupData, type: .nagari, cards: [], players: []) { _ in
+                self.gameData.isNagari = true
+                self.startGame()
+            }
+            return
+        }
         self.gameData.currentPlayerIndex = (self.gameData.currentPlayerIndex + 1) % 3
         self.doPlay()
     }
@@ -212,6 +224,7 @@ class GameScene: SKScene, ObservableObject {
                     else {
                         PopupManager.shared.showPopup(popupData: self.popupData, type: .stop, cards: [], players: [player]) { _ in
                             UserDefaults.standard.lastWinnerIndex = self.gameData.currentPlayerIndex
+                            UserDefaults.standard.wasNagari = false
                             self.showWinnerPopup(winnerIndex: self.gameData.currentPlayerIndex, scoreResult: scoreResult)
                         }
                     }
@@ -230,6 +243,7 @@ class GameScene: SKScene, ObservableObject {
                 // stop
                 else {
                     UserDefaults.standard.lastWinnerIndex = self.gameData.currentPlayerIndex
+                    UserDefaults.standard.wasNagari = false
                     self.showWinnerPopup(winnerIndex: self.gameData.currentPlayerIndex, scoreResult: scoreResult)
                 }
             }
@@ -296,6 +310,10 @@ class GameScene: SKScene, ObservableObject {
             score *= 2
             scoreText = "\n... 멍텅구리 \(2^(3 - player.waveCount))배"
         }
+        if let wasNagari = UserDefaults.standard.wasNagari, wasNagari {
+            score *= 2
+            scoreText = "\n... 이전판 나가리 2배"
+        }
         
         scoreText = "총 \(score)점" + scoreText
         return ScoreResult(score: score, winnerScoreText: scoreText, losser1ScoreText: "", losser2ScoreText: "")
@@ -330,6 +348,8 @@ class GameScene: SKScene, ObservableObject {
                 let sameMonthCards = player.handCards.filter({$0.month == handCard.month})
                 
                 if player.handCards.count == 7 && sameMonthCards.count == 4 {
+                    UserDefaults.standard.lastWinnerIndex = self.gameData.currentPlayerIndex
+                    UserDefaults.standard.wasNagari = false
                     self.showChongTongWinPopup(winnerIndex: i, cards: sameMonthCards)
                     self.collectMoney(nyang: 10)
                     return
@@ -474,6 +494,8 @@ class GameScene: SKScene, ObservableObject {
                     else if player.fuckCardMonths.count == 2 {
                         self.showThirdFuckWinPopup(winnerIndex: self.gameData.currentPlayerIndex, cards: fuckCards) {_ in 
                             self.collectMoney(nyang: 3)
+                            UserDefaults.standard.lastWinnerIndex = self.gameData.currentPlayerIndex
+                            UserDefaults.standard.wasNagari = false
                             self.startGame()
                         }
                         return
@@ -1398,22 +1420,17 @@ class GameScene: SKScene, ObservableObject {
         }
     }
     
-    private func setStrokeWithBlinkToPlayers() {
-        for i in 0...2 {
-            if let playerImageNode = self.childNode(withName: PlayerIconNode.prefixName + "\(i)"), let borderNode = playerImageNode.childNode(withName: PlayerIconNode.borderNodeName)  {
-                borderNode.removeAllChildren()
-            }
-            
-            if i != self.gameData.currentPlayerIndex { return }
-            
-            guard let playerImageNode = self.childNode(withName: PlayerIconNode.prefixName + "\(i)") else { return }
+    private func setStrokeWithBlinkToPlayerNode(playerIndex: Int) {
+        guard let playerIconNode = self.childNode(withName: PlayerIconNode.prefixName + "\(playerIndex)") else { return }
+        print("playerIndex \(playerIndex) == currentPlayerIndex: \(self.gameData.currentPlayerIndex)")
+        if playerIndex == self.gameData.currentPlayerIndex {
             let borderNode = SKShapeNode(rectOf: self.playerImageSize, cornerRadius: self.playerImageSize.width / 2)
-            borderNode.name = PlayerIconNode.borderNodeName
-            borderNode.strokeColor = i == self.gameData.currentPlayerIndex ? .yellow : .white.withAlphaComponent(0.5)
+            borderNode.name = PlayerIconNode.blinkBorderName
+            borderNode.strokeColor = playerIndex == self.gameData.currentPlayerIndex ? .yellow : .white.withAlphaComponent(0.5)
             borderNode.lineWidth = 3.0
             borderNode.fillColor = .clear
             borderNode.zPosition = 100
-            playerImageNode.addChild(borderNode)
+            playerIconNode.addChild(borderNode)
             
             // 깜빡이는 액션
             let fadeOut = SKAction.fadeAlpha(to: 0.2, duration: 0.3)
@@ -1423,6 +1440,17 @@ class GameScene: SKScene, ObservableObject {
             )
             borderNode.run(blink)
         }
+        else {
+            if let borderNode = playerIconNode.childNode(withName: PlayerIconNode.blinkBorderName) {
+                borderNode.removeFromParent()
+            }
+            else {
+                print("not found blinkBorderName")
+                for node in playerIconNode.children {
+                    print("... \(node.name)")
+                }
+            }
+        }
     }
     
     private func updatePlayers() { 
@@ -1431,8 +1459,8 @@ class GameScene: SKScene, ObservableObject {
             guard let playerIconNode = self.childNode(withName: PlayerIconNode.prefixName + "\(i)") else { return }
             self.removeChildren(in: [playerLabelNode, playerIconNode])
             self.setPlayerNode(player: self.gameData.players[i])
+            self.setStrokeWithBlinkToPlayerNode(playerIndex: i)
         }
-        self.setStrokeWithBlinkToPlayers()
     }
     
     private func setPlayerNode(player: Player) {
