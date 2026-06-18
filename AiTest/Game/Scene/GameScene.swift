@@ -17,6 +17,7 @@ class GameScene: SKScene, ObservableObject {
     var popupData: PopupData
     var isUserTouchCardEnabled = false
     
+    private let emptyCardMonth: Int = 100 // 폭탄 후 빈 카드
     // zPosition > tableCard = 10 ~ 140  deckCard = 1000~카드쌓기, 움직이는카드 10000 > 정지 후 0
     private let deckZPosition: CGFloat = 1000
     private var tableCardGroups: [[Card]] = []
@@ -27,7 +28,7 @@ class GameScene: SKScene, ObservableObject {
     private var cardGap: CGFloat = 0
     private var cardLayeredGap: CGFloat = 0
     
-    private let emptyCardMonth: Int = -1 // 폭탄 후 빈 카드
+    
     
     init(size: CGSize, gameData: GameData, popupData: PopupData, isPresentedCharacterSettingPopup: Binding<Bool>) {
         _isPresentedCharacterSettingPopup = isPresentedCharacterSettingPopup
@@ -124,32 +125,21 @@ extension GameScene {
             
             
             // 테이블에 첫번째 3장 나눠주기
-            for _ in 0...2 {
-                let _ = await self.moveDeckCardToTable()
-            }
+            await self.moveDeckCardToTable(count: 3)
             
             // 플레이어에게 첫번째 4장 나눠주기
             for i in 0...2 {
                 let nextPlayerIndex = (self.gameData.winnerIndex + 1 + i) % 3
-                
-                for cardIndex in 0...3 {
-                    await self.moveDeckCardToPlayerHand(playerIndex: nextPlayerIndex, cardIndex: cardIndex)
-                }
+                await self.moveDeckCardToPlayerHand(playerIndex: nextPlayerIndex, count: 4)
             }
             
             // 테이블에 두번째 3장 나눠주기
-            for _ in 3...5 {
-                await self.moveDeckCardToTable()
-            }
+            await self.moveDeckCardToTable(count: 3)
             
             // 플레이어에게 두번째 3장 나눠주기
             for i in 0...2 {
                 let nextPlayerIndex = (self.gameData.winnerIndex + 1 + i) % 3
-                
-                for cardIndex in 4...6 {
-                    await self.moveDeckCardToPlayerHand(playerIndex: nextPlayerIndex, cardIndex: cardIndex)
-                }
-                
+                await self.moveDeckCardToPlayerHand(playerIndex: nextPlayerIndex, count: 3)
                 self.sortPlayerHandCards(playerIndex: nextPlayerIndex)
             }
 
@@ -799,10 +789,12 @@ extension GameScene {
         cardNode.moveAndTurnCard(movePosition: movePosition, duration: self.gameData.cardDuration, isFront: true, zPosition: Int(zPosition),afterCardNodeScale: .large)
     }
     
-    private func moveDeckCardToTable() async {
-        let deckCard = self.deckCards.removeLast()
-        print("\(#function) deckCard: \(deckCard.month), \(deckCard.type)")
-        self.moveCardToTable(card: deckCard)
+    private func moveDeckCardToTable(count: Int = 1) async {
+        for _ in 0..<count {
+            let deckCard = self.deckCards.removeLast()
+            print("\(#function) deckCard: \(deckCard.month), \(deckCard.type)")
+            self.moveCardToTable(card: deckCard)
+        }
         
         do { try await Task.sleep(for: .seconds(self.gameData.cardDuration))
         } catch { print("error: \(error)")}
@@ -821,7 +813,7 @@ extension GameScene {
         } catch { print("error: \(error)")}
         
         // 덱에서 카드 한장 새로 받기
-        await self.moveDeckCardToPlayerHand(playerIndex: playerIndex, cardIndex: self.gameData.players[playerIndex].handCards.count)
+        await self.moveDeckCardToPlayerHand(playerIndex: playerIndex)
         do { try await Task.sleep(for: .seconds(self.gameData.cardDuration))
         } catch { print("error: \(error)")}
     }
@@ -994,12 +986,16 @@ extension GameScene {
         }
     }
     
-    private func moveDeckCardToPlayerHand(playerIndex: Int, cardIndex: Int) async {
-        guard let deckCardNode = childNode(withName: deckCards.last?.id.uuidString ?? "") as? CardNode else { return }
-        let lastDeckCard = self.deckCards.removeLast()
-        self.gameData.players[playerIndex].handCards.append(lastDeckCard)
-        let movePosition = self.getPlayerHandCardPosition(playerIndex: playerIndex, cardIndex: cardIndex)
-        deckCardNode.moveAndTurnCard(movePosition: movePosition, duration: self.gameData.cardDuration, isFront: playerIndex == 0, afterCardNodeScale: playerIndex == 0 ? .large : .small)
+    private func moveDeckCardToPlayerHand(playerIndex: Int, count: Int = 1) async {
+        for _ in 0..<count {
+            guard let deckCardNode = childNode(withName: deckCards.last?.id.uuidString ?? "") as? CardNode else { return }
+            let lastDeckCard = self.deckCards.removeLast()
+            self.gameData.players[playerIndex].handCards.append(lastDeckCard)
+            let cardIndex = self.gameData.players[playerIndex].handCards.count
+            let movePosition = self.getPlayerHandCardPosition(playerIndex: playerIndex, cardIndex: cardIndex)
+            deckCardNode.moveAndTurnCard(movePosition: movePosition, duration: self.gameData.cardDuration, isFront: playerIndex == 0, afterCardNodeScale: playerIndex == 0 ? .large : .small)
+        }
+        
         do { try await Task.sleep(for: .seconds(self.gameData.cardDuration))
         } catch { print("error: \(error)")}
     }
@@ -1034,7 +1030,7 @@ extension GameScene {
             guard let handCardNode = childNode(withName: handCard.id.uuidString) as? CardNode else { return }
             
             // 사용자 카드가 테이블에 있으면 깜빡이게 표시하기 or 보너스카드
-            if self.gameData.currentPlayerIndex == 0 && playerIndex == 0 && (handCard.month == 100 || handCard.month == 0 || self.getTableCardGroupIndex(cardMonth: handCard.month) != nil) {
+            if playerIndex == 0 && (handCard.month == 100 || handCard.month == 0 || self.getTableCardGroupIndex(cardMonth: handCard.month) != nil) {
                 handCardNode.addStrokeWithBlink(size: self.cardSize)
             }
             else {
@@ -1233,7 +1229,7 @@ extension GameScene {
         self.deckCards = self.gameData.deckCards
         
         for i in 0 ..< deckCards.count {
-            let node = CardNode(name: deckCards[i].id.uuidString, card: deckCards[i], cardSize: cardSize, isFront: false)
+            let node = CardNode(name: deckCards[i].id.uuidString, card: deckCards[i], cardSize: cardSize, isFront: true)
             node.position = CGPoint(x: startX + CGFloat(i), y: startY - CGFloat(i))
             node.zPosition = self.deckZPosition + CGFloat(i)
             self.addChild(node)
