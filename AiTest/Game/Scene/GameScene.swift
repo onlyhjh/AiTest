@@ -28,8 +28,6 @@ class GameScene: SKScene, ObservableObject {
     private var cardGap: CGFloat = 0
     private var cardLayeredGap: CGFloat = 0
     
-    
-    
     init(size: CGSize, gameData: GameData, popupData: PopupData, isPresentedCharacterSettingPopup: Binding<Bool>) {
         _isPresentedCharacterSettingPopup = isPresentedCharacterSettingPopup
         self.gameData = gameData
@@ -95,7 +93,7 @@ extension GameScene {
         self.gameData.currentPlayerIndex = self.gameData.winnerIndex
         
         for i in 0...2 {
-            self.gameData.players[i].capturedCardTypeGroup = [[],[],[],[]]
+            self.gameData.players[i].capturedCardTypeGroups = [[],[],[],[]]
             self.gameData.players[i].handCards = []
             self.gameData.players[i].goCount = 0
             self.gameData.players[i].lastGoScore = 0
@@ -103,7 +101,7 @@ extension GameScene {
             self.gameData.players[i].waveCount = 0
             self.gameData.players[i].scoreText = ""
             
-            self.setPlayerNode(player: self.gameData.players[i])
+            self.setPlayerNodes(player: self.gameData.players[i])
             print("setPlayerNode \(self.gameData.players[i].name)")
         }
         
@@ -116,6 +114,12 @@ extension GameScene {
             
             // Test 특정카드 사용자에게
 //            for (i, card) in self.deckCards.enumerated().reversed() {
+//                if card.type != .gwang && card.month == 1  {
+//                    let element = self.deckCards.remove(at: i)
+//                    self.deckCards.insert(element, at: self.deckCards.count - 4)
+//                }
+//            }
+//            for (i, card) in self.deckCards.enumerated().reversed() {
 //                if card.type == .yeol && card.month == 6 && card.piNum == 0 {
 //                    let element = self.deckCards.remove(at: i)
 //                    self.deckCards.insert(element, at: 26)
@@ -127,7 +131,7 @@ extension GameScene {
             // 테이블에 첫번째 3장 나눠주기
             await self.moveDeckCardToTable(count: 3)
             
-            // 플레이어에게 첫번째 4장 나눠주기
+            // 각 플레이어에게 첫번째 4장 나눠주기
             for i in 0...2 {
                 let nextPlayerIndex = (self.gameData.winnerIndex + 1 + i) % 3
                 await self.moveDeckCardToPlayerHand(playerIndex: nextPlayerIndex, count: 4)
@@ -136,7 +140,7 @@ extension GameScene {
             // 테이블에 두번째 3장 나눠주기
             await self.moveDeckCardToTable(count: 3)
             
-            // 플레이어에게 두번째 3장 나눠주기
+            // 각 플레이어에게 두번째 3장 나눠주기
             for i in 0...2 {
                 let nextPlayerIndex = (self.gameData.winnerIndex + 1 + i) % 3
                 await self.moveDeckCardToPlayerHand(playerIndex: nextPlayerIndex, count: 3)
@@ -178,22 +182,12 @@ extension GameScene {
         }
     }
     
-    private func doNextPlay() {
-        // 마지막장이면 나가리>> 다음판 두배
-        if self.gameData.players[0].handCards.isEmpty && self.gameData.players[1].handCards.isEmpty && self.gameData.players[2].handCards.isEmpty {
-            PopupManager.shared.showPopup(popupData: self.popupData, type: .nagari, cards: [], players: []) { _ in
-                self.gameData.isNagari = true
-                self.startGame()
-            }
-            return
-        }
-        self.gameData.currentPlayerIndex = (self.gameData.currentPlayerIndex + 1) % 3
-        self.doPlay()
-    }
-    
-    private func checkGoOrStopOrNextTurn() {
+    private func checkScoreAndDoNextPlay() {
         let player = self.gameData.players[self.gameData.currentPlayerIndex]
         let scoreResult = ScoreEngine(gameData: self.gameData).getScoreResult(playerIndex: player.index)
+        
+        // captured 점수 갱신 (뺏긴것 까지 다시 표시해야 함)
+        self.setPlayersScoreNodes()
         
         // 3점 이상이고 이전에 고한 점수 보다 높아야 함
         if scoreResult.score > 2, scoreResult.score > player.lastGoScore {
@@ -209,8 +203,16 @@ extension GameScene {
                 self.afterSelectGoOrStop(isGo: isGo, player: player, scoreResult: scoreResult)
             }
         }
+        // 마지막장이면 나가리>> 다음판 두배
+        else if self.gameData.players[0].handCards.isEmpty && self.gameData.players[1].handCards.isEmpty && self.gameData.players[2].handCards.isEmpty {
+            PopupManager.shared.showPopup(popupData: self.popupData, type: .nagari, cards: [], players: []) { _ in
+                self.gameData.isNagari = true
+                self.startGame()
+            }
+        }
         else {
-            self.doNextPlay()
+            self.gameData.currentPlayerIndex = (self.gameData.currentPlayerIndex + 1) % 3
+            self.doPlay()
         }
     }
     
@@ -346,7 +348,7 @@ extension GameScene {
                     if player.handCards.count == 6 {
                         PopupManager.shared.showPopup(popupData: self.popupData, type: .firstFuck, cards: fuckCards, players: [player]) {_ in
                             self.collectMoney(nyang: 5)
-                            self.doNextPlay()
+                            self.checkScoreAndDoNextPlay()
                         }
                         
                     }
@@ -354,7 +356,7 @@ extension GameScene {
                     else if player.handCards.count == 5 && player.fuckCardMonths.count == 1 {
                         PopupManager.shared.showPopup(popupData: self.popupData, type: .secondFuck, cards: fuckCards, players: [player]) {_ in
                             self.collectMoney(nyang: 10)
-                            self.doNextPlay()
+                            self.checkScoreAndDoNextPlay()
                         }
                     }
                     // 3번뻑 > 게임끝
@@ -369,7 +371,7 @@ extension GameScene {
                     }
                     else {
                         PopupManager.shared.showPopup(popupData: self.popupData, type: .fuck, cards: fuckCards, players: [player], completion: {_ in
-                            self.doNextPlay()
+                            self.checkScoreAndDoNextPlay()
                         })
                     }
                     
@@ -434,7 +436,7 @@ extension GameScene {
                         self.afterSelectCard(player: player, deckOrHandCard: handCard, tableCard: tableCard)
                     }
                 }
-            case 3: // 매칭카드 3개
+            default:  // 매칭카드 3개 이상 (뻑하고 보너스가 함께 있을수 있음)
                 // 3장 가져오기 ~ 한장씩 뺏기
                 let isPlayerFuckCard = player.fuckCardMonths.first(where: { $0 == handCard.month }) != nil
                 await self.movePlayerHandCardsToMatchingTableCards(handCards: [handCard], tableCards: matchingTableCards)
@@ -455,8 +457,6 @@ extension GameScene {
                         }
                     }
                 })
-            default:
-                break
             }
         }
     }
@@ -477,7 +477,7 @@ extension GameScene {
             switch matchingTableCards.count {
             case 0: // 매칭카드 없는 경우
                 await self.moveDeckCardToTable()
-                self.doNextPlay()
+                self.checkScoreAndDoNextPlay()
             case 1: // 매칭카드 1개 (
                 await self.moveDeckCardToMatchingTableCards(deckCard: deckCard, tableCards: matchingTableCards)
                 // 쪽인경우
@@ -490,7 +490,7 @@ extension GameScene {
                                     PopupManager.shared.showPopup(popupData: self.popupData, type: .emptyTable, cards: [], players: [player]) { select in
                                         Task {
                                             await self.collectPiCardsFromOthers(toPlayerIndex: player.index, piCount: 2) {
-                                                self.doNextPlay()
+                                                self.checkScoreAndDoNextPlay()
                                             }
                                         }
                                     }
@@ -498,7 +498,7 @@ extension GameScene {
                                 else {
                                     Task {
                                         await self.collectPiCardsFromOthers(toPlayerIndex: player.index, piCount: 1) {
-                                            self.doNextPlay()
+                                            self.checkScoreAndDoNextPlay()
                                         }
                                     }
                                 }
@@ -514,13 +514,13 @@ extension GameScene {
                             PopupManager.shared.showPopup(popupData: self.popupData, type: .emptyTable, cards: [], players: [player]) { select in
                                 Task {
                                     await self.collectPiCardsFromOthers(toPlayerIndex: player.index, piCount: 1) {
-                                        self.doNextPlay()
+                                        self.checkScoreAndDoNextPlay()
                                     }
                                 }
                             }
                         }
                         else {
-                            self.doNextPlay()
+                            self.checkScoreAndDoNextPlay()
                         }
                     }
                     
@@ -530,7 +530,7 @@ extension GameScene {
                 if matchingTableCards[0].type == matchingTableCards[1].type && matchingTableCards[0].isDoublePi == matchingTableCards[1].isDoublePi {
                     await self.moveDeckCardToMatchingTableCards(deckCard: deckCard, tableCards: matchingTableCards)
                     await self.moveMatchingCardsToPlayerCaptured(playerIndex: player.index, deckOrHandCards: [deckCard], tableCards: [matchingTableCards[0]]){
-                        self.doNextPlay()
+                        self.checkScoreAndDoNextPlay()
                     }
                 }
                 // 카드 선택
@@ -540,7 +540,7 @@ extension GameScene {
                         PopupManager.shared.showPopup(popupData: self.popupData, type: .selectCard, cards: [deckCard] + matchingTableCards, players: [player], completion: { select in
                             Task {
                                 await self.moveMatchingCardsToPlayerCaptured(playerIndex: player.index, deckOrHandCards: [deckCard], tableCards: [self.popupData.cards[1]]){
-                                    self.doNextPlay()
+                                    self.checkScoreAndDoNextPlay()
                                 }
                             }
                         })
@@ -549,13 +549,12 @@ extension GameScene {
                         let selectCard = self.selectCardWithAi(deckOrHandCard: deckCard, tableCards: matchingTableCards)
                         Task {
                             await self.moveMatchingCardsToPlayerCaptured(playerIndex: player.index, deckOrHandCards: [deckCard], tableCards: [selectCard]){
-                                self.doNextPlay()
+                                self.checkScoreAndDoNextPlay()
                             }
                         }
                     }
                 }
-            case 3: // 매칭카드 3개
-                //TODO:  3개 인경우 한장씩 뺏기
+            default:  // 매칭카드 3개 이상 (뻑하고 보너스가 함께 있을수 있음)
                 let isPlayerFuckCard = player.fuckCardMonths.first(where: { $0 == deckCard.month }) != nil
                 await self.moveDeckCardToMatchingTableCards(deckCard: deckCard, tableCards: matchingTableCards)
                 PopupManager.shared.showPopup(popupData: self.popupData, type: isPlayerFuckCard ? .threeTableCardsWithPlayerFuck : .threeTableCards, cards: [deckCard] + matchingTableCards, players: [player], completion: { _ in
@@ -566,7 +565,7 @@ extension GameScene {
                                 PopupManager.shared.showPopup(popupData: self.popupData, type: .emptyTable, cards: [], players: [player]) { select in
                                     Task {
                                         await self.collectPiCardsFromOthers(toPlayerIndex: player.index, piCount: isPlayerFuckCard ? 3 : 2) {
-                                            self.doNextPlay()
+                                            self.checkScoreAndDoNextPlay()
                                         }
                                     }
                                 }
@@ -574,25 +573,25 @@ extension GameScene {
                             else {
                                 Task {
                                     await self.collectPiCardsFromOthers(toPlayerIndex: player.index, piCount: isPlayerFuckCard ? 2 : 1) {
-                                        self.doNextPlay()
+                                        self.checkScoreAndDoNextPlay()
                                     }
                                 }
                             }
                         }
                     }
                 })
-            default: break
             }
         }
     }
     
     private func afterSelectGoOrStop(isGo: Bool, player: Player, scoreResult: ScoreResult) {
         if isGo {
+            PopupManager.shared.showPopup(popupData: self.popupData, type: .go, cards: [], players: [player], message: "\(self.gameData.players[player.index].goCount) 고!") { _ in
+                self.gameData.currentPlayerIndex = (self.gameData.currentPlayerIndex + 1) % 3
+                self.doPlay()
+            }
             self.gameData.players[player.index].goCount += 1
             self.gameData.players[player.index].lastGoScore = scoreResult.score
-            PopupManager.shared.showPopup(popupData: self.popupData, type: .go, cards: [], players: [player]) { _ in
-                self.doNextPlay()
-            }
         }
         else {
             PopupManager.shared.showPopup(popupData: self.popupData, type: .stop, cards: [], players: [player]) { _ in
@@ -718,7 +717,7 @@ extension GameScene {
         player2.scoreText = scoreResult.losser2ScoreText
         
         PopupManager.shared.showPopup(popupData: self.popupData, type: .win, cards: [], players: [winner, player1, player2], message: "광3점, 피2점, 띠1점, 고1점 >  총점 25점" ,completion: { select in
-            self.removeAllChildren()
+            self.startGame()
         })
     }
     
@@ -770,8 +769,8 @@ extension GameScene {
         cardNode.removeStroke()
         
         // 국진일 경우 type 강제 할당
-        let cardIndexByType = self.gameData.players[playerIndex].capturedCardTypeGroup[forcedType?.rawValue ?? card.type.rawValue].count
-        self.gameData.players[playerIndex].capturedCardTypeGroup[forcedType?.rawValue ?? card.type.rawValue].append(card)
+        let cardIndexByType = self.gameData.players[playerIndex].capturedCardTypeGroups[forcedType?.rawValue ?? card.type.rawValue].count
+        self.gameData.players[playerIndex].capturedCardTypeGroups[forcedType?.rawValue ?? card.type.rawValue].append(card)
         
         let movePosition = self.getPlayerCapturedCardPosition(playerIndex: playerIndex, cardIndexByType: cardIndexByType, cardType: forcedType ?? card.type)
         cardNode.moveAndTurnCard(movePosition: movePosition, duration: self.gameData.cardDuration, isFront: true, zPosition: cardIndexByType, afterCardNodeScale: .normal)
@@ -1030,7 +1029,7 @@ extension GameScene {
             guard let handCardNode = childNode(withName: handCard.id.uuidString) as? CardNode else { return }
             
             // 사용자 카드가 테이블에 있으면 깜빡이게 표시하기 or 보너스카드
-            if playerIndex == 0 && (handCard.month == 100 || handCard.month == 0 || self.getTableCardGroupIndex(cardMonth: handCard.month) != nil) {
+            if self.gameData.currentPlayerIndex == 0 && playerIndex == 0 && (handCard.month == 100 || handCard.month == 0 || self.getTableCardGroupIndex(cardMonth: handCard.month) != nil) {
                 handCardNode.addStrokeWithBlink(size: self.cardSize)
             }
             else {
@@ -1050,9 +1049,9 @@ extension GameScene {
     }
     
     private func sortPlayerCapturedPiCards(playerIndex: Int) {
-        for capturedCard in self.gameData.players[playerIndex].capturedCardTypeGroup[CardType.pi.rawValue] {
+        for capturedCard in self.gameData.players[playerIndex].capturedCardTypeGroups[CardType.pi.rawValue] {
             guard let capturedCardNode = childNode(withName: capturedCard.id.uuidString) as? CardNode else { return }
-            let cardIndexByType = self.gameData.players[playerIndex].capturedCardTypeGroup[ capturedCard.type.rawValue].firstIndex{ c in c.id == capturedCard.id } ?? 0
+            let cardIndexByType = self.gameData.players[playerIndex].capturedCardTypeGroups[ capturedCard.type.rawValue].firstIndex{ c in c.id == capturedCard.id } ?? 0
             let movePosition = self.getPlayerCapturedCardPosition(playerIndex: playerIndex, cardIndexByType: cardIndexByType, cardType: capturedCard.type)
             // 동일위치 다시 그리기 방지 (위치값 소숫점 미세하게 변경 무시)
             if Int(movePosition.x) == Int(capturedCardNode.position.x) && Int(movePosition.y) == Int(capturedCardNode.position.y) {
@@ -1060,7 +1059,7 @@ extension GameScene {
             }
             else {
                 //print("\(#function) different positioin \(i) current(\(handCardNode.position.x),\(handCardNode.position.y)),target(\(movePosition.x),\(movePosition.y))")
-                capturedCardNode.moveAndTurnCard(movePosition: movePosition, duration: self.gameData.cardDuration, isFront: true, movingUpScale: nil, afterCardNodeScale: .normal)
+                capturedCardNode.moveAndTurnCard(movePosition: movePosition, duration: self.gameData.cardDuration, isFront: true, zPosition: cardIndexByType, movingUpScale: nil, afterCardNodeScale: .normal)
             }
         }
     }
@@ -1123,8 +1122,8 @@ extension GameScene {
         for anotherPlayer in self.gameData.players {
             if anotherPlayer.index == toPlayerIndex { continue }
             
-            let doublePi: Card? = anotherPlayer.capturedCardTypeGroup[CardType.pi.rawValue].last{ $0.isDoublePi == true }
-            let onePis: [Card] = anotherPlayer.capturedCardTypeGroup[CardType.pi.rawValue].filter{ $0.isDoublePi == false }.suffix(2) // 뒤에 쌍피가 아닌 일반피 두개 가져오기
+            let doublePi: Card? = anotherPlayer.capturedCardTypeGroups[CardType.pi.rawValue].last{ $0.isDoublePi == true }
+            let onePis: [Card] = anotherPlayer.capturedCardTypeGroups[CardType.pi.rawValue].filter{ $0.isDoublePi == false }.suffix(2) // 뒤에 쌍피가 아닌 일반피 두개 가져오기
             
             var movingCards: [Card] = []
             
@@ -1148,7 +1147,7 @@ extension GameScene {
             }
             
             for movingCard in movingCards {
-                self.gameData.players[anotherPlayer.index].capturedCardTypeGroup[CardType.pi.rawValue].removeAll { $0.id == movingCard.id }
+                self.gameData.players[anotherPlayer.index].capturedCardTypeGroups[CardType.pi.rawValue].removeAll { $0.id == movingCard.id }
                 self.moveCardToPlayerCaptured(playerIndex: toPlayerIndex, card: movingCard)
             }
             
@@ -1229,7 +1228,7 @@ extension GameScene {
         self.deckCards = self.gameData.deckCards
         
         for i in 0 ..< deckCards.count {
-            let node = CardNode(name: deckCards[i].id.uuidString, card: deckCards[i], cardSize: cardSize, isFront: true)
+            let node = CardNode(name: deckCards[i].id.uuidString, card: deckCards[i], cardSize: cardSize, isFront: false)
             node.position = CGPoint(x: startX + CGFloat(i), y: startY - CGFloat(i))
             node.zPosition = self.deckZPosition + CGFloat(i)
             self.addChild(node)
@@ -1263,12 +1262,12 @@ extension GameScene {
             startPosition.x = self.size.width / 2 + self.cardGap
             startPosition.y = self.cardGap
         }
-        else if let playerLabelNode = self.childNode(withName: PlayerLabelNode.prefixName + "\(playerIndex)") as? SKLabelNode {
-            startPosition.x = playerLabelNode.position.x + (playerLabelNode.bounds.size.width / 2) + self.cardGap
-            startPosition.y = playerLabelNode.position.y - (self.cardSize.height * cardNodeScale) - self.cardGap
+        else if let playerNameNode = self.childNode(withName: CapsuledLabelNode.prefixPlayerName + "\(playerIndex)") as? SKLabelNode {
+            startPosition.x = playerNameNode.position.x + (playerNameNode.bounds.size.width / 2) + self.cardGap
+            startPosition.y = playerNameNode.position.y - (self.cardSize.height * cardNodeScale) - self.cardGap
         }
         else {
-            print("\(#function) empty childNode: \(PlayerLabelNode.prefixName)\(playerIndex)")
+            print("\(#function) empty childNode: \(CapsuledLabelNode.prefixPlayerName)\(playerIndex)")
             startPosition.x = (playerIndex == 2 ? 0.0 : self.size.width / 2) + self.cardGap
             startPosition.y = size.height + (cardSize.height / 2) - self.cardGap
         }
@@ -1356,18 +1355,18 @@ extension GameScene {
     
     private func updatePlayers() { 
         for i in 0...2 {
-            guard let playerLabelNode = self.childNode(withName: PlayerLabelNode.prefixName + "\(i)") else { return }
+            guard let playerNameNode = self.childNode(withName: CapsuledLabelNode.prefixPlayerName + "\(i)") else { return }
             guard let playerIconNode = self.childNode(withName: PlayerIconNode.prefixName + "\(i)") else { return }
-            self.removeChildren(in: [playerLabelNode, playerIconNode])
-            self.setPlayerNode(player: self.gameData.players[i])
+            self.removeChildren(in: [playerNameNode, playerIconNode])
+            self.setPlayerNodes(player: self.gameData.players[i])
             self.setStrokeWithBlinkToPlayerNode(playerIndex: i)
         }
     }
     
-    private func setPlayerNode(player: Player) {
+    private func setPlayerNodes(player: Player) {
         let cardHeightWithGap = self.cardSize.height + self.cardGap
         var startPosition: CGPoint = .zero // 좌측 하단이 시작점
-        let playerLabelNode = PlayerLabelNode(player: player)
+        let playerNameNode = CapsuledLabelNode(player: player)
         
         switch player.index {
         case 1:
@@ -1377,17 +1376,42 @@ extension GameScene {
             startPosition.x = self.cardGap
             startPosition.y = self.size.height - self.cardSize.height - self.cardGap
         default: // user
-            startPosition.x = (self.size.width - self.playerImageSize.width - playerLabelNode.frame.width) / 2
+            startPosition.x = (self.size.width - self.playerImageSize.width - playerNameNode.frame.width) / 2
             startPosition.y = cardHeightWithGap * 2 /*+ (self.playerImageSize.height / 2) - self.cardGap * 5*/
         }
 
         let playerIconNode = PlayerIconNode(player: player, position: startPosition, size: self.playerImageSize)
         self.addChild(playerIconNode)
     
-        playerLabelNode.position.x = startPosition.x + self.playerImageSize.width + playerLabelNode.bounds.width / 2
-        playerLabelNode.position.y = startPosition.y + (player.index == 0 ? 0.0 : self.playerImageSize.height / 2)
-        self.addChild(playerLabelNode)
+        playerNameNode.position.x = startPosition.x + self.playerImageSize.width + playerNameNode.bounds.width / 2 + 10
+        playerNameNode.position.y = startPosition.y + (player.index == 0 ? self.playerImageSize.height / 4 : self.playerImageSize.height / 2)
+        self.addChild(playerNameNode)
     }
     
-    
+    private func setPlayersScoreNodes() {
+        for player in self.gameData.players {
+            for i in 0..<player.capturedCardTypeGroups.count {
+                if let node = self.childNode(withName: CapsuledLabelNode.prefixPlayerCapturedGroup + "\(player.index)_\(i)") {
+                    self.removeChildren(in: [node])
+                }
+        
+                let cardIndexByType = player.capturedCardTypeGroups[i].count
+                if cardIndexByType == 0 { continue }
+                var position = self.getPlayerCapturedCardPosition(playerIndex: player.index, cardIndexByType: cardIndexByType, cardType: CardType(rawValue: i) ?? .gwang)
+                var score = 0
+                switch i {
+                case 0: score = player.gwangCount
+                case 1: score = player.yeolCount
+                case 2: score = player.ttiCount
+                case 3: score = player.piCount
+                default: break
+                }
+                let capturedCountNode = CapsuledLabelNode(player: player, groupIndex: i, score: score)
+                position.x += capturedCountNode.frame.width
+                position.y -= capturedCountNode.frame.height + 3
+                capturedCountNode.position = position
+                self.addChild(capturedCountNode)
+            }
+        }
+    }
 }

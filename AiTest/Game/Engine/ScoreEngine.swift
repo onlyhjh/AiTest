@@ -41,7 +41,7 @@ class ScoreEngine {
             score += ttiScore
             scoreText = "\n... 띠 \(ttiScore)점"
         }
-        let piScore = player.piCount
+        let piScore = player.piCount - 9
         if piScore > 0 {
             score += piScore
             scoreText = "\n... 피 \(piScore)점"
@@ -71,12 +71,12 @@ class ScoreEngine {
             scoreText = "\n... \(player.goCount)고 \(2^(3 - player.goCount))배"
         }
         if player.waveCount > 0 {
-            score *= 2
+            score *= 2^(3 - player.waveCount)
             scoreText = "\n... 흔들기 \(player.waveCount)회 \(2^(3 - player.waveCount))배"
         }
         if player.ttiCount > 6 {
             score *= 2
-            scoreText = "\n... 멍텅구리 \(2^(3 - player.waveCount))배"
+            scoreText = "\n... 멍텅구리 2배"
         }
         if let wasNagari = UserDefaults.standard.wasNagari, wasNagari {
             score *= 2

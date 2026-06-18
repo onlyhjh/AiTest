@@ -17,7 +17,7 @@ struct Player: Codable {
     var imageName: String = ""
     
     var handCards: [Card] = []
-    var capturedCardTypeGroup: [[Card]] = [[],[],[],[]]  // 0 gwang, 1 yeol, 2 dan, 3 pi
+    var capturedCardTypeGroups: [[Card]] = [[],[],[],[]]  // 0 gwang, 1 yeol, 2 dan, 3 pi
     var money: Int = 1000
     var goCount: Int = 0
     var lastGoScore = 0
@@ -28,36 +28,38 @@ struct Player: Codable {
     // MARK: - 계산 프로퍼티
     var piCount: Int {
         // 쌍피는 2점
-        capturedCardTypeGroup[CardType.pi.rawValue].count + capturedCardTypeGroup[CardType.pi.rawValue].count(where: { $0.isDoublePi == true })
+        capturedCardTypeGroups[CardType.pi.rawValue].count + capturedCardTypeGroups[CardType.pi.rawValue].count(where: { $0.isDoublePi == true })
     }
     
     var ttiCount: Int {
-        capturedCardTypeGroup[CardType.tti.rawValue].count
+        capturedCardTypeGroups[CardType.tti.rawValue].count
     }
     
     var yeolCount: Int {
-        capturedCardTypeGroup[CardType.yeol.rawValue].count
+        capturedCardTypeGroups[CardType.yeol.rawValue].count
     }
     
     var gwangCount: Int {
+        // 5광 15점
+        capturedCardTypeGroups[CardType.gwang.rawValue].count == 5 ? 15 :
         // 3점일때는 비 제외
-        capturedCardTypeGroup[CardType.gwang.rawValue].count == 3 && capturedCardTypeGroup[CardType.gwang.rawValue].contains(where: { $0.month == 12 }) ? 2 : capturedCardTypeGroup[CardType.gwang.rawValue].count
+        capturedCardTypeGroups[CardType.gwang.rawValue].count == 3 && capturedCardTypeGroups[CardType.gwang.rawValue].contains(where: { $0.month == 12 }) ? 2 : capturedCardTypeGroups[CardType.gwang.rawValue].count
     }
     
     var chodanCount: Int {
-        capturedCardTypeGroup[CardType.tti.rawValue].count(where: { $0.isChoDan == true })
+        capturedCardTypeGroups[CardType.tti.rawValue].count(where: { $0.isChoDan == true })
     }
     
     var hongdanCount: Int {
-        capturedCardTypeGroup[CardType.tti.rawValue].count(where: { $0.isChoDan == true })
+        capturedCardTypeGroups[CardType.tti.rawValue].count(where: { $0.isChoDan == true })
     }
     
     var chungdanCount: Int {
-        capturedCardTypeGroup[CardType.tti.rawValue].count(where: { $0.isChungDan == true })
+        capturedCardTypeGroups[CardType.tti.rawValue].count(where: { $0.isChungDan == true })
     }
     
     var godoriCount: Int {
-        capturedCardTypeGroup[CardType.yeol.rawValue].count(where: { $0.isGodori == true })
+        capturedCardTypeGroups[CardType.yeol.rawValue].count(where: { $0.isGodori == true })
     }
     
     init(index: Int) {

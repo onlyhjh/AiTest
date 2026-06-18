@@ -15,8 +15,13 @@ struct SpeedSettingView: View {
     
     var body: some View {
         ZStack {
+            Image(.splash)
+                .resizable()
+                .ignoresSafeArea()
+            
             Color.black.opacity(0.5)
                 .ignoresSafeArea()
+
             VStack() {
                 Spacer()
                     .frame(height: 10)

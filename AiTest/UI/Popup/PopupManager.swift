@@ -132,8 +132,8 @@ class PopupManager {
                 popupData.message = "피 두장씩 내놔~ 🥳"
                 popupData.status = .showAutoCloseMessagePopup
             case .go:
-                popupData.title = "못먹어도 고!!!"
-                popupData.message = "각오해~ 🥶"
+                popupData.title = message
+                popupData.message = "못먹어도 고~ 🥶"
                 popupData.status = .showAutoCloseMessagePopup
             case .stop:
                 popupData.title = "안전하게 스톱!!!"
