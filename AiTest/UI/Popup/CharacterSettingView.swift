@@ -1,5 +1,5 @@
 //
-//  SettingView.swift
+//  CharacterSettingView.swift
 //  AiTest
 //
 //  Created by Joey's Mac mini on 6/10/26.
@@ -8,11 +8,11 @@
 import SwiftUI
 import SwiftData
 
-struct SettingView: View {
+struct CharacterSettingView: View {
     @Binding var isPresented: Bool
     @State var gameData: GameData
     var isFirstLaunch: Bool
-    @State var isShowCharacterSettingView: Bool = false
+    @State var isShowCharacterIconSettingView: Bool = false
     @State var userName: String = ""
     @State var imageName: String = ""
     @State var characterIndex: Int = 0
@@ -29,14 +29,12 @@ struct SettingView: View {
                 .ignoresSafeArea()
             
             VStack(spacing: 10) {
-                Text(self.isFirstLaunch ? "🥹 환영합니다!!!" : "👩‍🏭 설정!")
+                Text(self.isFirstLaunch ? "🥹 환영합니다!!!" : "👩‍🏭 캐릭터 설정!")
                     .font(.title)
                     .padding()
-                Text("이름과 캐릭터를 설정하세요")
-                    .font(.caption)
                 HStack(spacing: 10) {
                     Button {
-                        isShowCharacterSettingView = true
+                        isShowCharacterIconSettingView = true
                         hideKeyboard()
                     } label: {
                         Image(imageName)
@@ -109,8 +107,8 @@ struct SettingView: View {
             .background(Color.white.opacity(0.9))
             .cornerRadius(20)
             
-            if isShowCharacterSettingView {
-                CharacterSettingView(isShowCharacterSettingView: $isShowCharacterSettingView, origianlCharacterIndex: $characterIndex)
+            if isShowCharacterIconSettingView {
+                CharacterIconSettingView(isPresented: $isShowCharacterIconSettingView, origianlCharacterIndex: $characterIndex)
             }
         }
         .alert(self.alertMessage, isPresented: self.$isPresentedAlert) {

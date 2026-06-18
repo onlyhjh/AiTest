@@ -17,7 +17,8 @@ struct MainContentView: View {
     @StateObject private var popupData = PopupData()
     @State var isPresentedAlert: Bool = false
     @State var isPresentedPopup = false
-    @State var isPresentedSettingView = false
+    @State var isPresentedCharacterSettingPopup = false
+    @State var isPresentedSpeedSettingPopup = false
     @State var alertMessage: String? = nil
     @State var popupType: String? = nil
     @State var popupStatus: PopupStatus = .closePopup
@@ -41,7 +42,7 @@ struct MainContentView: View {
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                         if scene == nil {
-                            let newScene = GameScene(size: geometry.size, gameData: self.gameData, popupData: self.popupData, isPresentedSettingView: $isPresentedSettingView)
+                            let newScene = GameScene(size: geometry.size, gameData: self.gameData, popupData: self.popupData, isPresentedCharacterSettingPopup: $isPresentedCharacterSettingPopup)
                             newScene.scaleMode = .aspectFit
                             scene = newScene
                         }
@@ -53,6 +54,12 @@ struct MainContentView: View {
             HStack {
                 Spacer()
                 VStack(alignment: .center, spacing: 20, content: {
+                    Button("⚙︎") {
+                        isPresentedSpeedSettingPopup = true
+                    }
+                    .foregroundStyle(.white)
+                    .font(.largeTitle)
+                    Spacer()
                     Button("start") {
                         self.gameData.deckCards = DeckFactory().generateFullDeck()
                         self.gameData.gameStatus = .start
@@ -61,9 +68,9 @@ struct MainContentView: View {
                     .padding()
                     .background(.green)
                     .clipShape(Capsule())
-                    Button("save1") {
+                    Button("save") {
                         if !self.gameData.deckCards.isEmpty, let encoded = try? JSONEncoder().encode(self.gameData.deckCards) {
-                            UserDefaults.standard.deckCards1 = encoded
+                            UserDefaults.standard.deckCards = encoded
                             self.alertMessage = "save success"
                             self.isPresentedAlert = true
                         }
@@ -72,29 +79,9 @@ struct MainContentView: View {
                     .padding()
                     .background(.red)
                     .clipShape(Capsule())
-                    Button("save2") {
-                        if !self.gameData.deckCards.isEmpty, let encoded = try? JSONEncoder().encode(self.gameData.deckCards) {
-                            UserDefaults.standard.deckCards2 = encoded
-                            self.alertMessage = "save success"
-                            self.isPresentedAlert = true
-                        }
-                    }
-                    .foregroundStyle(.white)
-                    .padding()
-                    .background(.red)
-                    .clipShape(Capsule())
-                    Button("load1") {
-                        if let data = UserDefaults.standard.deckCards1, let deckCards = try? JSONDecoder().decode([Card].self, from: data) {
-                            self.gameData.deckCards = deckCards
-                            self.gameData.gameStatus = .start
-                        }
-                    }
-                    .foregroundStyle(.white)
-                    .padding()
-                    .background(.blue)
-                    .clipShape(Capsule())
-                    Button("load2") {
-                        if let data = UserDefaults.standard.deckCards2, let deckCards = try? JSONDecoder().decode([Card].self, from: data) {
+
+                    Button("load") {
+                        if let data = UserDefaults.standard.deckCards, let deckCards = try? JSONDecoder().decode([Card].self, from: data) {
                             self.gameData.deckCards = deckCards
                             self.gameData.gameStatus = .start
                         }
@@ -116,17 +103,23 @@ struct MainContentView: View {
             }
             else {
                 self.gameData.players = PlayerFactory().getRandomPlayers()
-                self.isPresentedSettingView = true
+                self.isPresentedCharacterSettingPopup = true
             }
         }
-        .fullScreenCover(isPresented: $isPresentedSettingView, onDismiss: {
-            print("$isPresentedSettingView onDismiss")
+        .fullScreenCover(isPresented: $isPresentedCharacterSettingPopup, onDismiss: {
             if let encodedData = try? JSONEncoder().encode(self.gameData.players[0]) {
                 UserDefaults.standard.user = encodedData
                 self.gameData.gameStatus = .updatePlayers
             }
         }, content: {
-            SettingView(isPresented: $isPresentedSettingView, gameData: gameData, isFirstLaunch: UserDefaults.standard.user == nil)
+            CharacterSettingView(isPresented: $isPresentedCharacterSettingPopup, gameData: gameData, isFirstLaunch: UserDefaults.standard.user == nil)
+        })
+        .fullScreenCover(isPresented: $isPresentedSpeedSettingPopup, onDismiss: {
+            let gameSpeed = UserDefaults.standard.gameSpeed ?? 0.0
+            self.gameData.setCardDuration(gameSpeed: gameSpeed)
+            self.popupData.setAutoCloseDuration(gameSpeed: gameSpeed)
+        }, content: {
+            SpeedSettingView(isPresented: $isPresentedSpeedSettingPopup)
         })
         .fullScreenCover(isPresented: $isPresentedPopup, onDismiss: {
             self.popupData.status = .closePopup
@@ -158,7 +151,7 @@ struct MainContentView: View {
             case .showAutoCloseMessagePopup:
                 AutoCloseMessageView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players,cards: self.popupData.cards)
                     .onAppear{
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + self.popupData.autoCloseDuration) {
                             isPresentedPopup = false
                             self.popupData.completion(0)
                         }

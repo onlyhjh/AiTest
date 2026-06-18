@@ -1,5 +1,5 @@
 //
-//  CharacterSettingView.swift
+//  CharacterIconSettingView.swift
 //  AiTest
 //
 //  Created by Joey's Mac mini on 6/11/26.
@@ -8,8 +8,8 @@
 import SwiftUI
 import SwiftData
 
-struct CharacterSettingView: View {
-    @Binding var isShowCharacterSettingView: Bool
+struct CharacterIconSettingView: View {
+    @Binding var isPresented: Bool
     @Binding var origianlCharacterIndex: Int
     @State var tempCharacterIndex: Int = -1
     
@@ -54,7 +54,7 @@ struct CharacterSettingView: View {
                 
                 HStack(spacing: 100){
                     Button("확인") {
-                        isShowCharacterSettingView = false
+                        isPresented = false
                         origianlCharacterIndex = tempCharacterIndex
                     }
                     .foregroundStyle(.white)
@@ -64,7 +64,7 @@ struct CharacterSettingView: View {
                     .clipShape(Capsule())
                     
                     Button("취소") {
-                        isShowCharacterSettingView = false
+                        isPresented = false
                     }
                     .foregroundStyle(.white)
                     .padding()

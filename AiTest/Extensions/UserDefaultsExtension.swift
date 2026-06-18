@@ -8,22 +8,17 @@
 import Foundation
 
 enum UserDefaultKey: String, CaseIterable {
-    case testDeckCards1
-    case testDeckCards2
+    case testDeckCards
     case user
     case lastWinIndex
     case wasNagari
+    case gameSpeed
 }
 
 extension UserDefaults {
-    var deckCards1: Data? {
-        get { data(forKey: UserDefaultKey.testDeckCards1.rawValue) }
-        set { setValue(newValue, forKey: UserDefaultKey.testDeckCards1.rawValue)}
-    }
-    
-    var deckCards2: Data? {
-        get { data(forKey: UserDefaultKey.testDeckCards2.rawValue) }
-        set { setValue(newValue, forKey: UserDefaultKey.testDeckCards2.rawValue)}
+    var deckCards: Data? {
+        get { data(forKey: UserDefaultKey.testDeckCards.rawValue) }
+        set { setValue(newValue, forKey: UserDefaultKey.testDeckCards.rawValue)}
     }
     
     var user: Data? {
@@ -39,5 +34,10 @@ extension UserDefaults {
     var wasNagari: Bool? {
         get { value(forKey: UserDefaultKey.wasNagari.rawValue) as? Bool }
         set { setValue(newValue, forKey: UserDefaultKey.wasNagari.rawValue)}
+    }
+    
+    var gameSpeed: Double? {
+        get { value(forKey: UserDefaultKey.gameSpeed.rawValue) as? Double }
+        set { setValue(newValue, forKey: UserDefaultKey.gameSpeed.rawValue)}
     }
 }

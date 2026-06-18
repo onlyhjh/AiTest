@@ -20,6 +20,8 @@ enum PopupStatus {
 }
 
 class PopupData: ObservableObject {
+    static let defaultAutoCloseDuration: Double = 1.5
+    
     @Published var status: PopupStatus = .closePopup
     var title: String? = nil
     var message: String? = nil
@@ -28,4 +30,13 @@ class PopupData: ObservableObject {
     var button1Text: String = ""
     var button2Text: String = ""
     var completion: (_ select: Int) -> Void = { select in }
+    var autoCloseDuration: Double = 2.0 * (UserDefaults.standard.gameSpeed ?? 1)
+    
+    init() {
+        self.setAutoCloseDuration(gameSpeed: UserDefaults.standard.gameSpeed ?? 0.0)
+    }
+    
+    func setAutoCloseDuration(gameSpeed: Double) {
+        self.autoCloseDuration = PopupData.defaultAutoCloseDuration + gameSpeed * -1.0
+    }
 }
