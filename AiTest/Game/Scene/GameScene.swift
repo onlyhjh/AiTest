@@ -175,6 +175,10 @@ extension GameScene {
             switch self.gameData.currentPlayerIndex {
             case 0:
                 self.isUserTouchCardEnabled = true
+                // 보너스카드 뒤 뻑카드 처리 테스트용
+                if self.deckCards.count > 2 {
+                    print("???? next Deck Cards: \(self.deckCards[self.deckCards.count - 1].month) >>> \(self.deckCards[self.deckCards.count - 2].month)")
+                }
             case 1, 2:
                 self.aiTurn()
             default: break
@@ -187,12 +191,20 @@ extension GameScene {
         let scoreResult = ScoreEngine(gameData: self.gameData).getScoreResult(playerIndex: player.index)
         
         // captured 점수 갱신 (뺏긴것 까지 다시 표시해야 함)
-        self.setPlayersScoreNodes()
+//        for i in 0...2 {
+//            self.setPlayerScoreNodes(playerIndex: i)
+//        }
         
         // 3점 이상이고 이전에 고한 점수 보다 높아야 함
         if scoreResult.score > 2, scoreResult.score > player.lastGoScore {
+            // 막장이었으면 고/스톱 선택없이 바로 결과 출력
+            if player.handCards.isEmpty {
+                UserDefaults.standard.lastWinnerIndex = player.index
+                UserDefaults.standard.wasNagari = false
+                self.showWinnerPopup(winnerIndex: self.gameData.currentPlayerIndex, scoreResult: scoreResult)
+            }
             // User
-            if self.gameData.currentPlayerIndex == 0 {
+            else if player.index == 0 {
                 PopupManager.shared.showPopup(popupData: self.popupData, type: .selectGoOrStop, cards: [], players: [player]) { select in
                     self.afterSelectGoOrStop(isGo: select == 0, player: player, scoreResult: scoreResult)
                 }
@@ -203,7 +215,7 @@ extension GameScene {
                 self.afterSelectGoOrStop(isGo: isGo, player: player, scoreResult: scoreResult)
             }
         }
-        // 마지막장이면 나가리>> 다음판 두배
+        // 전체 사용자 막장이었으면 나가리>> 다음판 두배
         else if self.gameData.players[0].handCards.isEmpty && self.gameData.players[1].handCards.isEmpty && self.gameData.players[2].handCards.isEmpty {
             PopupManager.shared.showPopup(popupData: self.popupData, type: .nagari, cards: [], players: []) { _ in
                 self.gameData.isNagari = true
@@ -586,12 +598,12 @@ extension GameScene {
     
     private func afterSelectGoOrStop(isGo: Bool, player: Player, scoreResult: ScoreResult) {
         if isGo {
-            PopupManager.shared.showPopup(popupData: self.popupData, type: .go, cards: [], players: [player], message: "\(self.gameData.players[player.index].goCount) 고!") { _ in
+            self.gameData.players[player.index].goCount += 1
+            self.gameData.players[player.index].lastGoScore = scoreResult.score
+            PopupManager.shared.showPopup(popupData: self.popupData, type: .go, cards: [], players: [player], message: "\(player.goCount) 고!") { _ in
                 self.gameData.currentPlayerIndex = (self.gameData.currentPlayerIndex + 1) % 3
                 self.doPlay()
             }
-            self.gameData.players[player.index].goCount += 1
-            self.gameData.players[player.index].lastGoScore = scoreResult.score
         }
         else {
             PopupManager.shared.showPopup(popupData: self.popupData, type: .stop, cards: [], players: [player]) { _ in
@@ -638,12 +650,10 @@ extension GameScene {
         //  쌍피 선택
         if isDoublePi {
             self.moveCardToPlayerCaptured(playerIndex: playerIndex, card: card, forcedType: .pi)
-            self.sortTableCardGroup(tableCardGroupIndex: tableCardGroupIndex)
         }
         // 열끗 선택
         else {
             self.moveCardToPlayerCaptured(playerIndex: playerIndex, card: card)
-            self.sortTableCardGroup(tableCardGroupIndex: tableCardGroupIndex)
         }
         self.sortTableCardGroup(tableCardGroupIndex: tableCardGroupIndex)
         completion()
@@ -773,10 +783,12 @@ extension GameScene {
         self.gameData.players[playerIndex].capturedCardTypeGroups[forcedType?.rawValue ?? card.type.rawValue].append(card)
         
         let movePosition = self.getPlayerCapturedCardPosition(playerIndex: playerIndex, cardIndexByType: cardIndexByType, cardType: forcedType ?? card.type)
-        cardNode.moveAndTurnCard(movePosition: movePosition, duration: self.gameData.cardDuration, isFront: true, zPosition: cardIndexByType, afterCardNodeScale: .normal)
+        cardNode.moveAndTurnCard(movePosition: movePosition, duration: self.gameData.cardDuration, isFront: true, zPosition: cardIndexByType, afterCardNodeScale: .normal, completion: {
+            self.setPlayerScoreNodes(playerIndex: playerIndex)
+        })
     }
     
-    private func moveCardToTable(card: Card, tableCardGroupIndex: Int? = nil) {
+    private func moveCardToTable(card: Card, tableCardGroupIndex: Int) {
         print("\(#function) card: \(card.month), \(card.type)")
         guard let cardNode = childNode(withName: card.id.uuidString) as? CardNode else { return }
         cardNode.removeStroke()
@@ -784,7 +796,7 @@ extension GameScene {
         let cardIndexByGroup = self.tableCardGroups[groupIndex].count
         let zPosition = self.getTableCardZPosition(groupIndex: groupIndex, cardIndexByGroup: cardIndexByGroup)
         let movePosition = self.getTableCardPosition(groupIndex: groupIndex, cardIndexByGroup: cardIndexByGroup)
-        self.addTableCard(card: card)
+        self.tableCardGroups[tableCardGroupIndex].append(card)
         cardNode.moveAndTurnCard(movePosition: movePosition, duration: self.gameData.cardDuration, isFront: true, zPosition: Int(zPosition),afterCardNodeScale: .large)
     }
     
@@ -792,7 +804,8 @@ extension GameScene {
         for _ in 0..<count {
             let deckCard = self.deckCards.removeLast()
             print("\(#function) deckCard: \(deckCard.month), \(deckCard.type)")
-            self.moveCardToTable(card: deckCard)
+            let tableCardGroupIndex = self.getTableCardGroupIndex(cardMonth: deckCard.month) ?? self.getEmptyTableCardGroupIndex(cardMonth: deckCard.month)
+            self.moveCardToTable(card: deckCard, tableCardGroupIndex: tableCardGroupIndex)
         }
         
         do { try await Task.sleep(for: .seconds(self.gameData.cardDuration))
@@ -1002,7 +1015,8 @@ extension GameScene {
     private func movePlayerHandCardsToTable(playerIndex: Int, handCards: [Card]) async {
         for handCard in handCards {
             self.gameData.players[playerIndex].handCards.removeAll { $0.id == handCard.id }
-            self.moveCardToTable(card: handCard)
+            let tableCardGroupIndex = self.getTableCardGroupIndex(cardMonth: handCard.month) ?? self.getEmptyTableCardGroupIndex(cardMonth: handCard.month)
+            self.moveCardToTable(card: handCard, tableCardGroupIndex: tableCardGroupIndex)
         }
         
         do { try await Task.sleep(for: .seconds(self.gameData.cardDuration))
@@ -1051,8 +1065,9 @@ extension GameScene {
     private func sortPlayerCapturedPiCards(playerIndex: Int) {
         for capturedCard in self.gameData.players[playerIndex].capturedCardTypeGroups[CardType.pi.rawValue] {
             guard let capturedCardNode = childNode(withName: capturedCard.id.uuidString) as? CardNode else { return }
-            let cardIndexByType = self.gameData.players[playerIndex].capturedCardTypeGroups[ capturedCard.type.rawValue].firstIndex{ c in c.id == capturedCard.id } ?? 0
-            let movePosition = self.getPlayerCapturedCardPosition(playerIndex: playerIndex, cardIndexByType: cardIndexByType, cardType: capturedCard.type)
+            let cardIndexByType = self.gameData.players[playerIndex].capturedCardTypeGroups[capturedCard.type.rawValue].firstIndex{ c in c.id == capturedCard.id } ?? 0
+            // 6쌍피가 있어 강제 pi로만 위치 가져오기
+            let movePosition = self.getPlayerCapturedCardPosition(playerIndex: playerIndex, cardIndexByType: cardIndexByType, cardType: .pi)
             // 동일위치 다시 그리기 방지 (위치값 소숫점 미세하게 변경 무시)
             if Int(movePosition.x) == Int(capturedCardNode.position.x) && Int(movePosition.y) == Int(capturedCardNode.position.y) {
                 //print("\(#function) same positioin \(i)")
@@ -1152,6 +1167,7 @@ extension GameScene {
             }
             
             self.sortPlayerCapturedPiCards(playerIndex: anotherPlayer.index)
+            self.setPlayerScoreNodes(playerIndex: anotherPlayer.index)
         }
         
         do { try await Task.sleep(for: .seconds(self.gameData.cardDuration))
@@ -1201,8 +1217,9 @@ extension GameScene {
     private func getMatchingTableCards(cardMonth: Int) -> [Card] {
         var cards: [Card] = []
         for tableCardGroup in tableCardGroups {
-            for card in tableCardGroup {
-                if card.month == cardMonth {
+            // 첫번째 카드로만 같은 그룹인지 확인 후 보너스카드까지 가져가야 함
+            if tableCardGroup.first?.month == cardMonth {
+                for card in tableCardGroup {
                     cards.append(card)
                 }
             }
@@ -1215,11 +1232,6 @@ extension GameScene {
             self.tableCardGroups[i].removeAll { $0.id == card.id }
         }
     }
-    
-    private func addTableCard(card: Card) {
-        let index = self.getTableCardGroupIndex(cardMonth: card.month) ?? self.getEmptyTableCardGroupIndex(cardMonth: card.month)
-        self.tableCardGroups[index].append(card)
-    }
 
     private func setDeckCards() {
         let startX = round(size.width / 2)
@@ -1228,7 +1240,7 @@ extension GameScene {
         self.deckCards = self.gameData.deckCards
         
         for i in 0 ..< deckCards.count {
-            let node = CardNode(name: deckCards[i].id.uuidString, card: deckCards[i], cardSize: cardSize, isFront: false)
+            let node = CardNode(name: deckCards[i].id.uuidString, card: deckCards[i], cardSize: cardSize, isFront: true)
             node.position = CGPoint(x: startX + CGFloat(i), y: startY - CGFloat(i))
             node.zPosition = self.deckZPosition + CGFloat(i)
             self.addChild(node)
@@ -1388,30 +1400,30 @@ extension GameScene {
         self.addChild(playerNameNode)
     }
     
-    private func setPlayersScoreNodes() {
-        for player in self.gameData.players {
-            for i in 0..<player.capturedCardTypeGroups.count {
-                if let node = self.childNode(withName: CapsuledLabelNode.prefixPlayerCapturedGroup + "\(player.index)_\(i)") {
-                    self.removeChildren(in: [node])
-                }
+    private func setPlayerScoreNodes(playerIndex: Int) {
+        let player = self.gameData.players[playerIndex]
         
-                let cardIndexByType = player.capturedCardTypeGroups[i].count
-                if cardIndexByType == 0 { continue }
-                var position = self.getPlayerCapturedCardPosition(playerIndex: player.index, cardIndexByType: cardIndexByType, cardType: CardType(rawValue: i) ?? .gwang)
-                var score = 0
-                switch i {
-                case 0: score = player.gwangCount
-                case 1: score = player.yeolCount
-                case 2: score = player.ttiCount
-                case 3: score = player.piCount
-                default: break
-                }
-                let capturedCountNode = CapsuledLabelNode(player: player, groupIndex: i, score: score)
-                position.x += capturedCountNode.frame.width
-                position.y -= capturedCountNode.frame.height + 3
-                capturedCountNode.position = position
-                self.addChild(capturedCountNode)
+        for i in 0..<player.capturedCardTypeGroups.count {
+            if let node = self.childNode(withName: CapsuledLabelNode.prefixPlayerCapturedGroup + "\(player.index)_\(i)") {
+                self.removeChildren(in: [node])
             }
+            
+            let cardIndexByType = player.capturedCardTypeGroups[i].count
+            if cardIndexByType == 0 { continue }
+            var position = self.getPlayerCapturedCardPosition(playerIndex: player.index, cardIndexByType: cardIndexByType, cardType: CardType(rawValue: i) ?? .gwang)
+            var score = 0
+            switch i {
+            case 0: score = player.gwangCount
+            case 1: score = player.yeolCount
+            case 2: score = player.ttiCount
+            case 3: score = player.piCount
+            default: break
+            }
+            let capturedCountNode = CapsuledLabelNode(player: player, groupIndex: i, score: score)
+            position.x += capturedCountNode.frame.width
+            position.y -= capturedCountNode.frame.height + 3
+            capturedCountNode.position = position
+            self.addChild(capturedCountNode)
         }
     }
 }

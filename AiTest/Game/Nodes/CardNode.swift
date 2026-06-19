@@ -38,7 +38,7 @@ class CardNode: SKSpriteNode {
         fatalError()
     }
     
-    func moveAndTurnCard(movePosition: CGPoint, duration: TimeInterval = 0, isFront: Bool, zPosition: Int = 0, movingUpScale: CardNodeScale? = .zoom, afterCardNodeScale: CardNodeScale) {
+    func moveAndTurnCard(movePosition: CGPoint, duration: TimeInterval = 0, isFront: Bool, zPosition: Int = 0, movingUpScale: CardNodeScale? = .zoom, afterCardNodeScale: CardNodeScale, completion: (() -> Void)? = nil) {
         self.zPosition = 1000
         var sequnce: [SKAction] = []
         if let movingUpScale {
@@ -74,7 +74,10 @@ class CardNode: SKSpriteNode {
             sequnce.append(setTexture)
         }
         
-        run(SKAction.sequence(sequnce), completion: { self.zPosition = CGFloat(zPosition) })
+        run(SKAction.sequence(sequnce), completion: {
+            self.zPosition = CGFloat(zPosition)
+            completion?()
+        })
     }
 
     func addStrokeWithBlink(size: CGSize) {

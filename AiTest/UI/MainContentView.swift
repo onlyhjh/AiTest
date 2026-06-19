@@ -70,7 +70,8 @@ struct MainContentView: View {
                     .clipShape(Capsule())
                     Button("save") {
                         if !self.gameData.deckCards.isEmpty, let encoded = try? JSONEncoder().encode(self.gameData.deckCards) {
-                            UserDefaults.standard.deckCards = encoded
+                            UserDefaults.standard.savedDeckCards = encoded
+                            UserDefaults.standard.savedWinnerIndex = self.gameData.winnerIndex
                             self.alertMessage = "save success"
                             self.isPresentedAlert = true
                         }
@@ -81,8 +82,9 @@ struct MainContentView: View {
                     .clipShape(Capsule())
 
                     Button("load") {
-                        if let data = UserDefaults.standard.deckCards, let deckCards = try? JSONDecoder().decode([Card].self, from: data) {
+                        if let data = UserDefaults.standard.savedDeckCards, let deckCards = try? JSONDecoder().decode([Card].self, from: data) {
                             self.gameData.deckCards = deckCards
+                            UserDefaults.standard.lastWinnerIndex = UserDefaults.standard.savedWinnerIndex ?? 0
                             self.gameData.gameStatus = .start
                         }
                     }
