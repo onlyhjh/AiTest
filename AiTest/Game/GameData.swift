@@ -28,6 +28,7 @@ class GameData: ObservableObject {
     var players: [Player] = [Player(index: 0), Player(index: 1), Player(index: 2)]
     var currentPlayerIndex = 0
     var isNagari = false
+    var lastGoPlayerIndex: Int? = nil
     
     init() {
         setCardDuration(gameSpeed: UserDefaults.standard.gameSpeed ?? 0.0)

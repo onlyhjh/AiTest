@@ -13,8 +13,8 @@ enum PopupStatus {
     case showSelectButtonPopup
     case showAutoCloseMessagePopup
     case showMessagePopup
-    case showWinPopup
-    case showSpecialWinPopup
+    case showWinnerPopup
+    case showSpecialWinnerPopup
     case showAlert
     case closePopup
 }

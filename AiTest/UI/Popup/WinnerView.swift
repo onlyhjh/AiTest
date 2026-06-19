@@ -26,7 +26,7 @@ public struct WinnerView: View {
         ZStack {
             VStack(spacing: 10) {
                 HStack(spacing: 10) {
-                    Image(players[0].imageName ?? Player.unknownImageName)
+                    Image(players[0].imageName)
                         .resizable()
                         .frame(width: 50, height: 50)
                         .cornerRadius(25)
@@ -45,7 +45,7 @@ public struct WinnerView: View {
                         .font(.caption)
                 }
                 HStack(spacing: 10) {
-                    Image(players[1].imageName ?? Player.unknownImageName)
+                    Image(players[1].imageName)
                         .resizable()
                         .frame(width: 34, height: 34)
                         .cornerRadius(17)
@@ -53,7 +53,7 @@ public struct WinnerView: View {
                         .font(.caption)
                 }
                 HStack(spacing: 10) {
-                    Image(players[2].imageName ?? Player.unknownImageName)
+                    Image(players[2].imageName)
                         .resizable()
                         .frame(width: 34, height: 34)
                         .cornerRadius(17)
@@ -75,4 +75,11 @@ public struct WinnerView: View {
         }
         .presentationBackground(.black.opacity(0.2))
     }
+}
+
+#Preview {
+    WinnerView(title: ", message: self.popupData.message, players: self.popupData.players, closeAction: {
+        isPresentedPopup = false
+        self.popupData.completion(0)
+    })
 }

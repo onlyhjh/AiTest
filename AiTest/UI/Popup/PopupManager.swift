@@ -47,11 +47,11 @@ class PopupManager {
             case .chongtongWin:
                 popupData.title = "총통 승!!!"
                 popupData.message = "10만냥씩 줘~ 🥳"
-                popupData.status = .showSpecialWinPopup
+                popupData.status = .showSpecialWinnerPopup
             case .win:
                 popupData.title = "아싸 승!!!"
                 popupData.message = message ?? "알아서 언넝 내놔~ 🥳"
-                popupData.status = .showWinPopup
+                popupData.status = .showWinnerPopup
             case .nagari:
                 popupData.title = "나가리!!!"
                 popupData.message = message ?? "다음판은 두배여~ 🥶"
@@ -60,7 +60,7 @@ class PopupManager {
             case .thirdFuckWin:
                 popupData.title = "뻑 3번 승!!!"
                 popupData.message = "웃프게 이겼네.. 3만냥 주삼~ 😂"
-                popupData.status = .showSpecialWinPopup
+                popupData.status = .showSpecialWinnerPopup
             case .selectCard:
                 popupData.title = "카드 선택!!!"
                 popupData.message = "가져올 카드를 선택하삼~ 🥸"
@@ -139,8 +139,6 @@ class PopupManager {
                 popupData.title = "안전하게 스톱!!!"
                 popupData.message = "돈 준비들 하셔~ 🥹"
                 popupData.status = .showAutoCloseMessagePopup
-            default:
-                break
             }
         }
     }

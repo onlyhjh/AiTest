@@ -174,13 +174,13 @@ struct MainContentView: View {
                     isPresentedPopup = false
                     self.popupData.completion(0)
                 })
-            case .showWinPopup:
+            case .showWinnerPopup:
                 WinnerView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players, closeAction: {
                     isPresentedPopup = false
                     self.popupData.completion(0)
                 })
-            case .showSpecialWinPopup:
-                SpecialWinView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players, cards: self.popupData.cards, closeAction: {
+            case .showSpecialWinnerPopup:
+                SpecialWinnerView(title: self.popupData.title, message: self.popupData.message, players: self.popupData.players, cards: self.popupData.cards, closeAction: {
                     isPresentedPopup = false
                     self.popupData.completion(0)
                 })

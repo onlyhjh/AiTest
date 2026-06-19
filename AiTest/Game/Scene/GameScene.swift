@@ -91,6 +91,7 @@ extension GameScene {
         
         self.gameData.winnerIndex = UserDefaults.standard.lastWinnerIndex ?? 1
         self.gameData.currentPlayerIndex = self.gameData.winnerIndex
+        self.gameData.lastGoPlayerIndex = nil
         
         for i in 0...2 {
             self.gameData.players[i].capturedCardTypeGroups = [[],[],[],[]]
@@ -606,6 +607,7 @@ extension GameScene {
             }
             self.gameData.players[player.index].goCount += 1
             self.gameData.players[player.index].lastGoScore = scoreResult.score
+            self.gameData.lastGoPlayerIndex = player.index
         }
         else {
             PopupManager.shared.showPopup(popupData: self.popupData, type: .stop, cards: [], players: [player]) { _ in
@@ -716,8 +718,14 @@ extension GameScene {
     
     private func collectMoney(playerIndex: Int, mNyang: Int) {
         self.gameData.players[playerIndex].money += mNyang * 2
-        self.gameData.players[(playerIndex + 1) % 3].money -= mNyang
-        self.gameData.players[(playerIndex + 2) % 3].money -= mNyang
+        // 독박 확인
+        if let lastGoPlayerIndex = self.gameData.lastGoPlayerIndex, lastGoPlayerIndex != playerIndex {
+            self.gameData.players[lastGoPlayerIndex].money -= mNyang * 2
+        }
+        else {
+            self.gameData.players[(playerIndex + 1) % 3].money -= mNyang
+            self.gameData.players[(playerIndex + 2) % 3].money -= mNyang
+        }
     }
     
     private func showWinnerPopup(winnerIndex: Int, scoreResult: ScoreResult) {

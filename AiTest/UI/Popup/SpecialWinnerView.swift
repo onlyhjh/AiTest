@@ -1,5 +1,5 @@
 //
-//  SpecialWinView.swift
+//  SpecialWinnerView.swift
 //  AiTest
 //
 //  Created by Joey's Mac mini on 5/26/26.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-public struct SpecialWinView: View {
+public struct SpecialWinnerView: View {
 
     var title: String?
     var message: String?
@@ -28,7 +28,7 @@ public struct SpecialWinView: View {
         ZStack {
             VStack(spacing: 10) {
                 HStack(spacing: 10) {
-                    Image(players[0].imageName ?? Player.unknownImageName)
+                    Image(players[0].imageName)
                         .resizable()
                         .frame(width: 50, height: 50)
                         .cornerRadius(25)
@@ -48,22 +48,6 @@ public struct SpecialWinView: View {
                             .frame(width: 50, height: 75)
                             .rotationEffect(.degrees(15 * Double(index % 2 == 0 ? 1 : -1)))
                     }
-                }
-                HStack(spacing: 10) {
-                    Image(players[1].imageName ?? Player.unknownImageName)
-                        .resizable()
-                        .frame(width: 34, height: 34)
-                        .cornerRadius(17)
-                    Text(players[1].scoreText ?? "")
-                        .font(.caption)
-                }
-                HStack(spacing: 10) {
-                    Image(players[2].imageName ?? Player.unknownImageName)
-                        .resizable()
-                        .frame(width: 34, height: 34)
-                        .cornerRadius(17)
-                    Text(players[2].scoreText ?? "")
-                        .font(.caption)
                 }
                 HStack(spacing: 20) {
                     Button("확인") {
