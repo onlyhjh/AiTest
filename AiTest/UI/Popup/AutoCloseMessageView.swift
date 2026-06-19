@@ -49,7 +49,7 @@ public struct AutoCloseMessageView: View {
                 }
             }
             .padding(20)
-            .background(.white.opacity(0.8))
+            .background(.white.opacity(0.9))
             .cornerRadius(20)
         }
         .presentationBackground(.black.opacity(0.2))

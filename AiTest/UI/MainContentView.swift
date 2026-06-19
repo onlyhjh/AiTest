@@ -24,6 +24,7 @@ struct MainContentView: View {
     @State var popupStatus: PopupStatus = .closePopup
     @State var scene: GameScene? // 다시 그리기 방지
     @State var showSpriteView = false
+    @State var isStarted = false
     
     var body: some View {
         ZStack {
@@ -51,6 +52,13 @@ struct MainContentView: View {
                 }
             }
             .edgesIgnoringSafeArea(.vertical)
+            
+            if !isStarted {
+                Image(.splash)
+                    .resizable()
+                    .ignoresSafeArea()
+            }
+            
             HStack {
                 Spacer()
                 VStack(alignment: .center, spacing: 20, content: {
@@ -63,6 +71,7 @@ struct MainContentView: View {
                     Button("start") {
                         self.gameData.deckCards = DeckFactory().generateFullDeck()
                         self.gameData.gameStatus = .start
+                        self.isStarted = true
                     }
                     .foregroundStyle(.white)
                     .padding()
@@ -85,7 +94,9 @@ struct MainContentView: View {
                         if let data = UserDefaults.standard.savedDeckCards, let deckCards = try? JSONDecoder().decode([Card].self, from: data) {
                             self.gameData.deckCards = deckCards
                             UserDefaults.standard.lastWinnerIndex = UserDefaults.standard.savedWinnerIndex ?? 0
+                            self.gameData.winnerIndex = UserDefaults.standard.savedWinnerIndex ?? 0
                             self.gameData.gameStatus = .start
+                            self.isStarted = true
                         }
                     }
                     .foregroundStyle(.white)

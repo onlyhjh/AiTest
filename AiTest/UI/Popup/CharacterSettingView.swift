@@ -21,13 +21,8 @@ struct CharacterSettingView: View {
     
     var body: some View {
         ZStack {
-            Image(.splash)
-                .resizable()
-                .ignoresSafeArea()
-            
             Color.black.opacity(0.5)
                 .ignoresSafeArea()
-            
             VStack(spacing: 10) {
                 Text(self.isFirstLaunch ? "🥹 환영합니다!!!" : "👩‍🏭 캐릭터 설정!")
                     .font(.title)
@@ -104,13 +99,15 @@ struct CharacterSettingView: View {
                 Spacer()
                     .frame(height: 5)
             }
-            .background(Color.white.opacity(0.9))
+            .padding(20)
+            .background(.white.opacity(0.9))
             .cornerRadius(20)
-            
+  
             if isShowCharacterIconSettingView {
                 CharacterIconSettingView(isPresented: $isShowCharacterIconSettingView, origianlCharacterIndex: $characterIndex)
             }
         }
+        .presentationBackground(.black.opacity(0.2))
         .alert(self.alertMessage, isPresented: self.$isPresentedAlert) {
             Button("OK") { self.isPresentedAlert = false }
         }

@@ -150,13 +150,13 @@ extension GameScene {
             // 보너스 카드 지급 후 덱카드 테이블에 지급 (재귀반복)
             await self.moveBonusTableCardToPlayerCapturedAndMoveDeckCardToTableAgain(playerIndex: self.gameData.winnerIndex)
             // 총통 검사 1 (10점)
-            self.checkChongTong()
-            
-            // 테스트 한장씩 뺏어오기 테스트용
-//            for i in 0...8 {
-//                await self.moveDeckCardToPlayerCaptured(playerIndex: i % 3)
-//            }
-            self.doPlay()
+            if !self.isChongTong() {
+                // 테스트 한장씩 뺏어오기 테스트용
+    //            for i in 0...8 {
+    //                await self.moveDeckCardToPlayerCaptured(playerIndex: i % 3)
+    //            }
+                self.doPlay()
+            }
         }
     }
     
@@ -177,7 +177,7 @@ extension GameScene {
                 self.isUserTouchCardEnabled = true
                 // 보너스카드 뒤 뻑카드 처리 테스트용
                 if self.deckCards.count > 2 {
-                    print("???? next Deck Cards: \(self.deckCards[self.deckCards.count - 1].month) >>> \(self.deckCards[self.deckCards.count - 2].month)")
+                    print("???? next Deck Cards: \(self.deckCards[self.deckCards.count - 1].month) > \(self.deckCards[self.deckCards.count - 2].month)")
                 }
             case 1, 2:
                 self.aiTurn()
@@ -229,7 +229,7 @@ extension GameScene {
     }
     
     private func aiTurn() {
-        guard let card = self.gameData.players[self.gameData.currentPlayerIndex].handCards.randomElement() else { return }
+        guard let card = self.gameData.players[self.gameData.currentPlayerIndex].handCards.first else { return }
         self.playWithSelectedHandCard(handCard: card)
     }
     
@@ -250,7 +250,7 @@ extension GameScene {
     }
     
     // 총통 검사 2 (10점)
-    private func checkChongTong()  {
+    private func isChongTong() -> Bool  {
         for (i, player) in self.gameData.players.enumerated() {
             for handCard in player.handCards {
                 let sameMonthCards = player.handCards.filter({$0.month == handCard.month})
@@ -259,11 +259,12 @@ extension GameScene {
                     UserDefaults.standard.lastWinnerIndex = self.gameData.currentPlayerIndex
                     UserDefaults.standard.wasNagari = false
                     self.showChongTongWinPopup(winnerIndex: i, cards: sameMonthCards)
-                    self.collectMoney(nyang: 10)
-                    return
+                    self.collectMoney(playerIndex: player.index, mNyang: 10)
+                    return true
                 }
             }
         }
+        return false
     }
     
     private func playWithSelectedHandCard(handCard: Card) {
@@ -278,8 +279,9 @@ extension GameScene {
                         await self.moveBonusPlayerHandBonusCardToPlayerCaptured(playerIndex: player.index, handCard: handCard)
                         self.sortPlayerHandCards(playerIndex: player.index)
                         // 총통 검사 2 (10점)
-                        self.checkChongTong()
-                        self.doPlay() // 다시
+                        if !self.isChongTong() {
+                            self.doPlay() // 다시
+                        }
                     }
                 })
                 return
@@ -359,23 +361,23 @@ extension GameScene {
                     // 시작 첫뻑
                     if player.handCards.count == 6 {
                         PopupManager.shared.showPopup(popupData: self.popupData, type: .firstFuck, cards: fuckCards, players: [player]) {_ in
-                            self.collectMoney(nyang: 5)
+                            self.collectMoney(playerIndex: player.index, mNyang: 5)
                             self.checkScoreAndDoNextPlay()
                         }
-                        
                     }
                     //  2연뻑
                     else if player.handCards.count == 5 && player.fuckCardMonths.count == 1 {
                         PopupManager.shared.showPopup(popupData: self.popupData, type: .secondFuck, cards: fuckCards, players: [player]) {_ in
-                            self.collectMoney(nyang: 10)
+                            self.collectMoney(playerIndex: player.index, mNyang: 10)
                             self.checkScoreAndDoNextPlay()
                         }
                     }
                     // 3번뻑 > 게임끝
                     else if player.fuckCardMonths.count == 2 {
-                        self.showThirdFuckWinPopup(winnerIndex: self.gameData.currentPlayerIndex, cards: fuckCards) {_ in 
-                            self.collectMoney(nyang: 3)
-                            UserDefaults.standard.lastWinnerIndex = self.gameData.currentPlayerIndex
+                        PopupManager.shared.showPopup(popupData: self.popupData, type: .thirdFuckWin, cards: fuckCards, players: [player]) {_ in
+                            self.collectMoney(playerIndex: player.index, mNyang: 3)
+                            self.gameData.winnerIndex = player.index
+                            UserDefaults.standard.lastWinnerIndex = player.index
                             UserDefaults.standard.wasNagari = false
                             self.startGame()
                         }
@@ -598,12 +600,12 @@ extension GameScene {
     
     private func afterSelectGoOrStop(isGo: Bool, player: Player, scoreResult: ScoreResult) {
         if isGo {
-            self.gameData.players[player.index].goCount += 1
-            self.gameData.players[player.index].lastGoScore = scoreResult.score
-            PopupManager.shared.showPopup(popupData: self.popupData, type: .go, cards: [], players: [player], message: "\(player.goCount) 고!") { _ in
+            PopupManager.shared.showPopup(popupData: self.popupData, type: .go, cards: [], players: [player], message: "\(player.goCount + 1) 고!") { _ in
                 self.gameData.currentPlayerIndex = (self.gameData.currentPlayerIndex + 1) % 3
                 self.doPlay()
             }
+            self.gameData.players[player.index].goCount += 1
+            self.gameData.players[player.index].lastGoScore = scoreResult.score
         }
         else {
             PopupManager.shared.showPopup(popupData: self.popupData, type: .stop, cards: [], players: [player]) { _ in
@@ -712,8 +714,10 @@ extension GameScene {
         }
     }
     
-    private func collectMoney(nyang: Int) {
-        print("\(#function) 가져올 돈 \(nyang)만냥")
+    private func collectMoney(playerIndex: Int, mNyang: Int) {
+        self.gameData.players[playerIndex].money += mNyang * 2
+        self.gameData.players[(playerIndex + 1) % 3].money -= mNyang
+        self.gameData.players[(playerIndex + 2) % 3].money -= mNyang
     }
     
     private func showWinnerPopup(winnerIndex: Int, scoreResult: ScoreResult) {
@@ -743,18 +747,6 @@ extension GameScene {
         PopupManager.shared.showPopup(popupData: self.popupData, type: .chongtongWin, cards: cards, players: [winner, player1, player2], completion: { _ in
             self.removeAllChildren()
         })
-    }
-    
-    private func showThirdFuckWinPopup(winnerIndex: Int, cards: [Card], completion: @escaping (Int) -> Void) {
-        self.gameData.winnerIndex = winnerIndex
-        
-        let winner = self.gameData.players[winnerIndex]
-        var player1 = self.gameData.players[(winnerIndex + 1) % 3]
-        var player2 = self.gameData.players[(winnerIndex + 2) % 3]
-        player1.scoreText = "-3만냥"
-        player2.scoreText = "-3만냥"
-        
-        PopupManager.shared.showPopup(popupData: self.popupData, type: .thirdFuckWin, cards: cards, players: [winner, player1, player2], completion: completion)
     }
     
     private func isEmptyTable() -> Bool {
@@ -1240,7 +1232,7 @@ extension GameScene {
         self.deckCards = self.gameData.deckCards
         
         for i in 0 ..< deckCards.count {
-            let node = CardNode(name: deckCards[i].id.uuidString, card: deckCards[i], cardSize: cardSize, isFront: true)
+            let node = CardNode(name: deckCards[i].id.uuidString, card: deckCards[i], cardSize: cardSize, isFront: false)
             node.position = CGPoint(x: startX + CGFloat(i), y: startY - CGFloat(i))
             node.zPosition = self.deckZPosition + CGFloat(i)
             self.addChild(node)

@@ -25,8 +25,6 @@ struct CharacterIconSettingView: View {
     
     var body: some View {
         ZStack {
-            Color.black.opacity(0.5)
-                .ignoresSafeArea()
             VStack() {
                 Spacer()
                     .frame(height: 10)
@@ -77,9 +75,11 @@ struct CharacterIconSettingView: View {
                     .frame(height: 10)
                 
             }
-            .background(Color.white.opacity(0.9))
+            .padding(20)
+            .background(.white.opacity(0.9))
             .cornerRadius(20)
         }
+        .presentationBackground(.black.opacity(0.2))
         .onAppear {
             tempCharacterIndex = origianlCharacterIndex
         }

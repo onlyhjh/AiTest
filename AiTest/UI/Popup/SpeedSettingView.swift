@@ -15,30 +15,21 @@ struct SpeedSettingView: View {
     
     var body: some View {
         ZStack {
-            Image(.splash)
-                .resizable()
-                .ignoresSafeArea()
-            
-            Color.black.opacity(0.5)
-                .ignoresSafeArea()
+//            Image(.splash)
+//                .resizable()
+//                .ignoresSafeArea()
+//            
+//            Color.black.opacity(0.5)
+//                .ignoresSafeArea()
 
-            VStack() {
-                Spacer()
-                    .frame(height: 10)
-                Text("👩‍🏭 스피드 설정!")
-                Spacer()
-                    .frame(height: 30)
-                Slider(value: $sliderValue, in: -1...1)
-                    .frame(width: 300)
-                HStack {
-                    Text("천천히")
+            VStack(spacing: 20) {
+                Text("👩‍🏭 설정!")
+                HStack(spacing: 10) {
+                    Text("게임 속도")
                         .font(.caption)
-                    Spacer()
-                    Text("빨리")
-                        .font(.caption)
+                    Slider(value: $sliderValue, in: -1...1)
                 }
                 .frame(width: 300)
-                
                 HStack(spacing: 20){
                     Button("확인") {
                         isPresented = false
@@ -60,14 +51,12 @@ struct SpeedSettingView: View {
                     .background(.red)
                     .clipShape(Capsule())
                 }
-                
-                Spacer()
-                    .frame(height: 10)
-                
             }
-            .background(Color.white.opacity(0.9))
+            .padding(20)
+            .background(.white.opacity(0.9))
             .cornerRadius(20)
         }
+        .presentationBackground(.black.opacity(0.2))
         .onAppear {
             sliderValue = UserDefaults.standard.gameSpeed ?? 0
         }

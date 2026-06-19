@@ -59,7 +59,7 @@ class PopupManager {
                 popupData.status = .showMessagePopup
             case .thirdFuckWin:
                 popupData.title = "뻑 3번 승!!!"
-                popupData.message = "웃프게 이겼네.. 뭐여 이건~ 😂"
+                popupData.message = "웃프게 이겼네.. 3만냥 주삼~ 😂"
                 popupData.status = .showSpecialWinPopup
             case .selectCard:
                 popupData.title = "카드 선택!!!"
@@ -113,11 +113,11 @@ class PopupManager {
                 popupData.status = .showAutoCloseMessagePopup
             case .firstFuck:
                 popupData.title = "오메 첫뻑!!!"
-                popupData.message = "웃프다~ 일단 3만냥씩 내놔~ 😂"
+                popupData.message = "웃프다~ 일단 5만냥씩 내놔~ 😂"
                 popupData.status = .showAutoCloseMessagePopup
             case .secondFuck:
                 popupData.title = "오메메 2연속 뻑!!!"
-                popupData.message = "대단하다~ 일단 따블로 6만냥씩 받자~ 😂"
+                popupData.message = "대단하다~ 일단 따블로 10만냥씩 받자~ 😂"
                 popupData.status = .showAutoCloseMessagePopup
             case .ddadak:
                 popupData.title = "아싸 따닥!!!"
