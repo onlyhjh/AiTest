@@ -11,8 +11,6 @@ import SpriteKit
 import GameplayKit
 
 struct MainContentView: View {
-    @Environment(\.modelContext) private var modelContext
-
     @StateObject private var gameData = GameData()
     @StateObject private var popupData = PopupData()
     @State var isPresentedAlert: Bool = false
@@ -194,12 +192,12 @@ struct MainContentView: View {
         .alert(self.alertMessage ?? "", isPresented: self.$isPresentedAlert) {
             Button("OK") { self.isPresentedAlert = false }
         }
-        .onChange(of: popupData.status) {
-            print("\(#function) change popupStatus: \(popupData.status)")
-            if self.popupStatus == popupData.status { return }
-            self.popupStatus = popupData.status
+        .onChange(of: popupData.status) { newValue in
+            print("\(#function) change popupStatus: \(newValue)")
+            if self.popupStatus == newValue { return }
+            self.popupStatus = newValue
             
-            switch self.popupStatus {
+            switch newValue {
             case .closePopup:
                 self.isPresentedPopup = false
             case .showAlert:

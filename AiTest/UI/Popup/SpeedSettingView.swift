@@ -56,7 +56,7 @@ struct SpeedSettingView: View {
             .background(.white.opacity(0.9))
             .cornerRadius(20)
         }
-        .presentationBackground(.black.opacity(0.2))
+        .presentationBackground(.black.opacity(0.4))
         .onAppear {
             sliderValue = UserDefaults.standard.gameSpeed ?? 0
         }

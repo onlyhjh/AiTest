@@ -9,7 +9,7 @@ import SwiftUI
 
 enum PopupType {
     case chongtongWin       // 총통 승리
-    case win                // 승리
+    case winner             // 승리
     case nagari             // 나가리
     case ddadak             // 따닥
     case selectCard         // 카드 선택
@@ -48,8 +48,8 @@ class PopupManager {
                 popupData.title = "총통 승!!!"
                 popupData.message = "10만냥씩 줘~ 🥳"
                 popupData.status = .showSpecialWinnerPopup
-            case .win:
-                popupData.title = "아싸 승!!!"
+            case .winner:
+                popupData.title = "Winner!!!"
                 popupData.message = message ?? "알아서 언넝 내놔~ 🥳"
                 popupData.status = .showWinnerPopup
             case .nagari:

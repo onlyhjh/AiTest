@@ -44,9 +44,13 @@ struct CharacterSettingView: View {
                         TextField("이름을 입력해 주세요", text: $userName)
                             .padding(10)
                             .frame(width: 200, height: 50)
-                            .onChange(of: userName) {
-                                if userName.count > 5 {
-                                    userName = String(userName.prefix(5))
+                            .onChange(of: userName) { newValue in
+                                if userName == newValue { return }
+                                if newValue.count > 5 {
+                                    userName = String(newValue.prefix(5))
+                                }
+                                else {
+                                    userName = newValue
                                 }
                             }
                     }
@@ -107,7 +111,7 @@ struct CharacterSettingView: View {
                 CharacterIconSettingView(isPresented: $isShowCharacterIconSettingView, origianlCharacterIndex: $characterIndex)
             }
         }
-        .presentationBackground(.black.opacity(0.2))
+        .presentationBackground(.black.opacity(0.4))
         .alert(self.alertMessage, isPresented: self.$isPresentedAlert) {
             Button("OK") { self.isPresentedAlert = false }
         }
@@ -116,16 +120,19 @@ struct CharacterSettingView: View {
             userName = self.gameData.players[0].name
             imageName = self.gameData.players[0].imageName
         }
-        .onChange(of: characterIndex) { oldValue, newValue in
+        .onChange(of: characterIndex) { newValue in
+            if characterIndex == newValue { return }
+            self.characterIndex = newValue
             // 사용자가 수정한 이름이 기존이름을 그대로 쓰는지 확인, 다르면 사용자 설정 커스텀 이름 사용
             if GameData.playerNames.contains(where: { $0 == self.gameData.players[0].name }) || self.userName.isEmpty {
-                userName = GameData.playerNames[characterIndex]
+                userName = GameData.playerNames[newValue]
                 self.gameData.players[0].name = userName
             }
             else {
                 userName = self.gameData.players[0].name
             }
-            imageName = Player.imageNamePrefix + String(format: "%02d", characterIndex)
+            imageName = Player.imageNamePrefix + String(format: "%02d", newValue)
+            
         }
     }
 }
