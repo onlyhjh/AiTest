@@ -11,7 +11,8 @@ enum PopupType {
     case chongtongWin       // 총통 승리
     case winner             // 승리
     case nagari             // 나가리
-    case ddadak             // 따닥
+    case tadak             // 따닥
+    case firstTadak         // 첫따닥
     case selectCard         // 카드 선택
     case selectWave         // 흔들기 선택
     case selectGoOrStop     // 고, 스톱 선택
@@ -119,9 +120,13 @@ class PopupManager {
                 popupData.title = "오메메 2연속 뻑!!!"
                 popupData.message = "대단하다~ 일단 따블로 10만냥씩 받자~ 😂"
                 popupData.status = .showAutoCloseMessagePopup
-            case .ddadak:
+            case .tadak:
                 popupData.title = "아싸 따닥!!!"
                 popupData.message = "피 한장씩 내놔~ 🤩"
+                popupData.status = .showAutoCloseMessagePopup
+            case .firstTadak:
+                popupData.title = "아싸 첫 따닥!!!"
+                popupData.message = "피 한장씩 그리고 5만냥도 내놔~ 🤩"
                 popupData.status = .showAutoCloseMessagePopup
             case .threeTableCards:
                 popupData.title = "아싸 쌩큐!!!"

@@ -82,6 +82,7 @@ class GameScene: SKScene, ObservableObject {
     }
 }
 
+
 extension GameScene {
     private func startGame() {
         self.removeAllChildren()
@@ -91,27 +92,20 @@ extension GameScene {
         
         self.gameData.winnerIndex = UserDefaults.standard.lastWinnerIndex ?? 1
         self.gameData.currentPlayerIndex = self.gameData.winnerIndex
-        self.gameData.lastGoPlayerIndex = nil
+        self.gameData.goHistory = []
         
         for i in 0...2 {
-            self.gameData.players[i].capturedCardTypeGroups = [[],[],[],[]]
-            self.gameData.players[i].handCards = []
-            self.gameData.players[i].goCount = 0
-            self.gameData.players[i].lastGoScore = 0
-            self.gameData.players[i].fuckCardMonths = []
-            self.gameData.players[i].waveCount = 0
-
+            self.clearPlayerGameStatus(i)
             self.setPlayerNodes(player: self.gameData.players[i])
-            print("setPlayerNode \(self.gameData.players[i].name)")
         }
         
         Task {
             // Test : player captured영역 확인을 위해 전체 카드 주기 */
-            for _ in 0..<self.deckCards.count - 1 {
-                await self.moveDeckCardToPlayerCaptured(playerIndex: 0)
-            }
-            showWinnerPopup(winnerIndex: 0)
-            return
+//            for _ in 0..<self.deckCards.count - 1 {
+//                await self.moveDeckCardToPlayerCaptured(playerIndex: 0)
+//            }
+//            self.showWinnerPopup(winnerIndex: 0, wasNagari: true)
+//            return
             
             // Test 특정카드 사용자에게
 //            for (i, card) in self.deckCards.enumerated().reversed() {
@@ -121,7 +115,7 @@ extension GameScene {
 //                }
 //            }
 //            for (i, card) in self.deckCards.enumerated().reversed() {
-//                if card.type == .yeol && card.month == 6 && card.piNum == 0 {
+//                if card.type == .yeol && card.month > 5 && card.piNum == 0 {
 //                    let element = self.deckCards.remove(at: i)
 //                    self.deckCards.insert(element, at: 26)
 //                    break
@@ -187,6 +181,26 @@ extension GameScene {
         }
     }
     
+    func clearPlayerGameStatus(_ i: Int) {
+        self.gameData.players[i].capturedCardTypeGroups = [[],[],[],[]]
+        self.gameData.players[i].handCards = []
+        self.gameData.players[i].goCount = 0
+        self.gameData.players[i].lastGoScore = 0
+        self.gameData.players[i].fuckCardMonths = []
+        self.gameData.players[i].waveCount = 0
+        
+        // winner
+        self.gameData.players[i].isChongTongWin = false
+        self.gameData.players[i].is3FuckWin = false
+        self.gameData.players[i].isGokbak = false
+        self.gameData.players[i].wasNagari = false
+        // looser
+        self.gameData.players[i].isPiBak = false
+        self.gameData.players[i].isGwangBak = false
+        self.gameData.players[i].isGoBak = false // 독박과 동일
+        self.gameData.players[i].finalScore = 0
+    }
+    
     private func checkScoreAndDoNextPlay() {
         let player = self.gameData.players[self.gameData.currentPlayerIndex]
         
@@ -195,8 +209,8 @@ extension GameScene {
             // 막장이었으면 고/스톱 선택없이 바로 결과 출력
             if player.handCards.isEmpty {
                 UserDefaults.standard.lastWinnerIndex = player.index
+                self.showWinnerPopup(winnerIndex: self.gameData.currentPlayerIndex, wasNagari: UserDefaults.standard.wasNagari ?? false)
                 UserDefaults.standard.wasNagari = false
-                self.showWinnerPopup(winnerIndex: self.gameData.currentPlayerIndex)
             }
             // User
             else if player.index == 0 {
@@ -213,7 +227,7 @@ extension GameScene {
         // 전체 사용자 막장이었으면 나가리>> 다음판 두배
         else if self.gameData.players[0].handCards.isEmpty && self.gameData.players[1].handCards.isEmpty && self.gameData.players[2].handCards.isEmpty {
             PopupManager.shared.showPopup(popupData: self.popupData, type: .nagari, cards: [], players: []) { _ in
-                self.gameData.isNagari = true
+                UserDefaults.standard.wasNagari = true
                 self.startGame()
             }
         }
@@ -254,8 +268,10 @@ extension GameScene {
                     UserDefaults.standard.lastWinnerIndex = self.gameData.currentPlayerIndex
                     UserDefaults.standard.wasNagari = false
                     self.showChongTongWinPopup(winnerIndex: i, cards: sameMonthCards) {
-                        self.collectMoney(winnerIndex: player.index, money: 10){
-                            self.removeAllChildren()
+                        self.collectMoney(winnerIndex: player.index, loserIndex: (player.index + 1) % 3, money: 10){
+                            self.collectMoney(winnerIndex: player.index, loserIndex: (player.index + 2) % 3, money: 10){
+                                self.removeAllChildren()
+                            }
                         }
                     }
                     return true
@@ -357,18 +373,22 @@ extension GameScene {
                     await self.moveDeckCardToTable()
                     
                     // 시작 첫뻑
-                    if player.handCards.count == 6 {
+                    if player.handCards.count > 5 {
                         PopupManager.shared.showPopup(popupData: self.popupData, type: .firstFuck, cards: fuckCards, players: [player]) {_ in
-                            self.collectMoney(winnerIndex: player.index, money: 5) {
-                                self.checkScoreAndDoNextPlay()
+                            self.collectMoney(winnerIndex: player.index, loserIndex: (player.index + 1) % 3 ,money: 5) {
+                                self.collectMoney(winnerIndex: player.index, loserIndex: (player.index + 2) % 3 ,money: 5) {
+                                    self.checkScoreAndDoNextPlay()
+                                }
                             }
                         }
                     }
                     //  2연뻑
                     else if player.handCards.count == 5 && player.fuckCardMonths.count == 1 {
                         PopupManager.shared.showPopup(popupData: self.popupData, type: .secondFuck, cards: fuckCards, players: [player]) {_ in
-                            self.collectMoney(winnerIndex: player.index, money: 10) {
-                                self.checkScoreAndDoNextPlay()
+                            self.collectMoney(winnerIndex: player.index, loserIndex: (player.index + 1) % 3, money: 10) {
+                                self.collectMoney(winnerIndex: player.index, loserIndex: (player.index + 2) % 3, money: 10) {
+                                    self.checkScoreAndDoNextPlay()
+                                }
                             }
                         }
                     }
@@ -376,15 +396,25 @@ extension GameScene {
                     else if player.fuckCardMonths.count == 2 {
                         PopupManager.shared.showPopup(popupData: self.popupData, type: .thirdFuckWin, cards: fuckCards, players: [player]) {_ in
                             // 독박체크
-                            let gokbakPlayerIndex = self.getGokbakPlayerIndex(winnerIndex: player.index)
-                            if let gokbakPlayerIndex {
-                                self.gameData.players[gokbakPlayerIndex].isGokbak = true
+                            let goBakPlayerIndex = self.getGoBakPlayerIndex(winnerIndex: player.index)
+                            if let goBakPlayerIndex {
+                                self.gameData.players[goBakPlayerIndex].isGokbak = true
+                                self.collectMoney(winnerIndex: player.index, loserIndex: goBakPlayerIndex, money: 6) {
+                                    self.gameData.winnerIndex = player.index
+                                    UserDefaults.standard.lastWinnerIndex = player.index
+                                    UserDefaults.standard.wasNagari = false
+                                    self.startGame()
+                                }
                             }
-                            self.collectMoney(winnerIndex: player.index, fromPlayersIndexes: gokbakPlayerIndex == nil ? nil: [gokbakPlayerIndex!] ,money: gokbakPlayerIndex == nil ? 3 : 6) {
-                                self.gameData.winnerIndex = player.index
-                                UserDefaults.standard.lastWinnerIndex = player.index
-                                UserDefaults.standard.wasNagari = false
-                                self.startGame()
+                            else {
+                                self.collectMoney(winnerIndex: player.index, loserIndex: (player.index + 1) % 3 ,money: 3) {
+                                    self.collectMoney(winnerIndex: player.index, loserIndex: (player.index + 2) % 3 ,money: 3) {
+                                        self.gameData.winnerIndex = player.index
+                                        UserDefaults.standard.lastWinnerIndex = player.index
+                                        UserDefaults.standard.wasNagari = false
+                                        self.startGame()
+                                    }
+                                }
                             }
                         }
                         return
@@ -413,14 +443,22 @@ extension GameScene {
                 // 따닥
                 if nextDeckCardExceptBonus.month == handCard.month {
                     await self.movePlayerHandCardsToMatchingTableCards(handCards: [handCard], tableCards: matchingTableCards)
-                    PopupManager.shared.showPopup(popupData: self.popupData, type: .ddadak, cards: [handCard, nextDeckCardExceptBonus] + matchingTableCards, players: [player], completion: { _ in
+                    
+                    PopupManager.shared.showPopup(popupData: self.popupData, type: player.handCards.count > 5 ? .firstTadak : .tadak, cards: [handCard, nextDeckCardExceptBonus] + matchingTableCards, players: [player], completion: { _ in
                         Task {
                             await self.moveMatchingCardsToPlayerCaptured(playerIndex: player.index, deckOrHandCards: [handCard], tableCards: [matchingTableCards[0]]) {
                                 Task {
                                     await self.moveBonusDeckCardsToPlayerCapturedIfNeeded(playerIndex: player.index){
                                         Task {
                                             await self.flipDeckCardAfterBonusCard()
-                                            await self.collectPiCardsFromOthers(toPlayerIndex: player.index, piCount: 1, completion: {})
+                                            await self.collectPiCardsFromOthers(toPlayerIndex: player.index, piCount: 1, completion: {
+                                                // 첫따닥 5만냥
+                                                if player.handCards.count > 5 {
+                                                    self.collectMoney(winnerIndex: player.index, loserIndex: (player.index + 1) % 3,money: 5){
+                                                        self.collectMoney(winnerIndex: player.index, loserIndex: (player.index + 2) % 3,money: 5){}
+                                                    }
+                                                }
+                                            })
                                         }
                                     }
                                 }
@@ -481,20 +519,11 @@ extension GameScene {
         }
     }
     
-    private func getGokbakPlayerIndex(winnerIndex: Int) -> Int? {
-        let player1Index = (winnerIndex + 1) % 3
-        let player2Index = (winnerIndex + 2) % 3
-        
-        if gameData.lastGoPlayerIndex == player1Index {
-            return player1Index
-        }
-        else if gameData.lastGoPlayerIndex == player2Index {
-            return player2Index
-        }
-        else {
-            return nil
-        }
+    // Winner가 고 한 경우가 이닌 마지막 사용자 index반환
+    private func getGoBakPlayerIndex(winnerIndex: Int) -> Int? {
+        return gameData.goHistory.last{ $0 != winnerIndex }
     }
+    
     // 덱카드 뒤집기 (보너스카드 이후)
     private func flipDeckCardAfterBonusCard(kissHandCard: Card? = nil) async {
         let player = self.gameData.players[self.gameData.currentPlayerIndex]
@@ -626,13 +655,13 @@ extension GameScene {
             }
             self.gameData.players[player.index].goCount += 1
             self.gameData.players[player.index].lastGoScore = player.baseScore
-            self.gameData.lastGoPlayerIndex = player.index
+            self.gameData.goHistory.append(player.index)
         }
         else {
             PopupManager.shared.showPopup(popupData: self.popupData, type: .stop, cards: [], players: [player]) { _ in
                 UserDefaults.standard.lastWinnerIndex = player.index
+                self.showWinnerPopup(winnerIndex: self.gameData.currentPlayerIndex, wasNagari: UserDefaults.standard.wasNagari ?? false)
                 UserDefaults.standard.wasNagari = false
-                self.showWinnerPopup(winnerIndex: self.gameData.currentPlayerIndex)
             }
         }
     }
@@ -735,28 +764,28 @@ extension GameScene {
         }
     }
     
-    private func collectMoney(winnerIndex: Int, fromPlayersIndexes: [Int]? = nil, money: Int, completion: @escaping () -> Void) {
-        let from: [Int] = fromPlayersIndexes ?? [(winnerIndex + 1 % 3), (winnerIndex + 2 % 3)]
+    private func collectMoney(winnerIndex: Int, loserIndex: Int, money: Int, completion: @escaping () -> Void) {
+        guard let winnerIconNode = self.childNode(withName: PlayerIconNode.prefixName + "\(winnerIndex)") else { return }
+        guard let loserNode = self.childNode(withName: PlayerIconNode.prefixName + "\(loserIndex)") else { return }
         
-        for fpi in from {
-            self.gameData.players[winnerIndex].money -= money
-            self.gameData.players[winnerIndex].money += money
+        self.gameData.players[loserIndex].money -= money
+        self.gameData.players[winnerIndex].money += money
+        
+        let moneyNode = MoneyNode(position: loserNode.position)
+        self.addChild(moneyNode)
+        moneyNode.moveToWinner(movePosition: winnerIconNode.position, duration: self.gameData.cardDuration) {
+            completion()
         }
-        
-        completion()
     }
     
-    private func showWinnerPopup(winnerIndex: Int) {
+    private func showWinnerPopup(winnerIndex: Int, wasNagari: Bool) {
         self.gameData.winnerIndex = winnerIndex
         
         var winner = self.gameData.players[winnerIndex]
         var player1 = self.gameData.players[(winnerIndex + 1) % 3]
         var player2 = self.gameData.players[(winnerIndex + 2) % 3]
         
-        let gokbakPlayerIndex = self.getGokbakPlayerIndex(winnerIndex: winnerIndex)
-        if let gokbakPlayerIndex {
-            self.gameData.players[gokbakPlayerIndex].isGoBak = true
-        }
+        winner.wasNagari = wasNagari
         
         if winner.gwangScore > 0 {
             player1.isGwangBak = player1.gwangCount == 0
@@ -768,30 +797,37 @@ extension GameScene {
             player2.isPiBak = player2.piCount > 0 && player2.piCount < 6
         }
         
-        winner.isChongTongWin = false
-        winner.is3FuckWin = false
-        winner.isGokbak = false
-        winner.wasNagari = UserDefaults.standard.wasNagari ?? false
-        winner.isPiBak = false
-        winner.isGwangBak = false
-        winner.isGoBak = false // 독박과 동일
-        
+        // 독박 확인
         player1.finalScore = winner.subtotalScore * (player1.isGwangBak ? 2 :1) * (player1.isPiBak ? 2 : 1) * (player1.isGoBak ? 2 : 1)
         player2.finalScore = winner.subtotalScore * (player2.isGwangBak ? 2 :1) * (player2.isPiBak ? 2 : 1) * (player2.isGoBak ? 2 : 1)
+        
+        let goBakPlayerIndex = self.getGoBakPlayerIndex(winnerIndex: winnerIndex)
+        if let goBakPlayerIndex {
+            if goBakPlayerIndex == player1.index {
+                player1.isGoBak = true
+                player1.finalScore += player2.finalScore
+                player2.finalScore = 0
+            }
+            else if goBakPlayerIndex == player2.index {
+                player2.isGoBak = true
+                player2.finalScore += player1.finalScore
+                player1.finalScore = 0
+            }
+        }
         winner.finalScore = player1.finalScore + player2.finalScore
         
         PopupManager.shared.showPopup(popupData: self.popupData, type: .winner, cards: [], players: [winner, player1, player2], completion: { select in
-            if let gokbakPlayerIndex {
-                self.collectMoney(winnerIndex: winnerIndex, fromPlayersIndexes: [gokbakPlayerIndex], money: winner.finalScore){
+            if let goBakPlayerIndex {
+                self.collectMoney(winnerIndex: winnerIndex, loserIndex: goBakPlayerIndex, money: winner.finalScore){
                     self.startGame()
                 }
             }
             else {
-                self.collectMoney(winnerIndex: winnerIndex, fromPlayersIndexes: [player1.index], money: player1.finalScore){}
-                self.collectMoney(winnerIndex: winnerIndex, fromPlayersIndexes: [player2.index], money: player2.finalScore){
-                    self.startGame()
+                self.collectMoney(winnerIndex: winnerIndex, loserIndex: player1.index, money: player1.finalScore){
+                    self.collectMoney(winnerIndex: winnerIndex, loserIndex: player2.index, money: player2.finalScore){
+                        self.startGame()
+                    }
                 }
-                
             }
         })
     }
@@ -800,10 +836,10 @@ extension GameScene {
         self.gameData.winnerIndex = winnerIndex
         
         let winner = self.gameData.players[winnerIndex]
-        var player1 = self.gameData.players[(winnerIndex + 1) % 3]
-        var player2 = self.gameData.players[(winnerIndex + 2) % 3]
+        var loser1 = self.gameData.players[(winnerIndex + 1) % 3]
+        var loser2 = self.gameData.players[(winnerIndex + 2) % 3]
         
-        PopupManager.shared.showPopup(popupData: self.popupData, type: .chongtongWin, cards: cards, players: [winner, player1, player2], completion: { _ in
+        PopupManager.shared.showPopup(popupData: self.popupData, type: .chongtongWin, cards: cards, players: [winner, loser1, loser2], completion: { _ in
             competion()
         })
     }

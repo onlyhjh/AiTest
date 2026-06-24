@@ -15,10 +15,11 @@ struct Player: Codable {
     var characterIndex: Int = 0
     var name: String = ""
     var imageName: String = ""
+    var money: Int = 1000
     
+    // 이하 각 게임마다 clear 대상
     var handCards: [Card] = []
     var capturedCardTypeGroups: [[Card]] = [[],[],[],[]]  // 0 gwang, 1 yeol, 2 dan, 3 pi
-    var money: Int = 1000
     var goCount: Int = 0
     var lastGoScore = 0
     var fuckCardMonths: [Int] = [] // 뻑

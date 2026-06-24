@@ -49,7 +49,7 @@ public struct WinnerView: View {
                                             .background(.pink)
                                             .clipShape(Circle())
                                     }
-                                    Text("+\(players[2].finalScore)만냥")
+                                    Text("+\(players[0].finalScore)만냥")
                                         .font(.title3)
                                         .bold()
                                         .padding(7)
@@ -329,7 +329,9 @@ public struct WinnerView: View {
                                 }
                                 .frame(width: 100)
                             }
+                            Spacer()
                         }
+                        .padding()
                         .frame(width: 130 , height: 220)
                         .background(.white.opacity(0.5))
                     }

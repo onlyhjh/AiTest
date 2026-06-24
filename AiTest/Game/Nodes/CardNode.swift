@@ -15,7 +15,7 @@ enum CardNodeScale: CGFloat {
 }
 
 class CardNode: SKSpriteNode {
-    
+     
     static let borderNodeName = "borderNode"
     
     let card: Card
@@ -79,7 +79,7 @@ class CardNode: SKSpriteNode {
             completion?()
         })
     }
-
+    
     func addStrokeWithBlink(size: CGSize) {
         self.removeAllChildren()
         let borderNode = SKShapeNode(rectOf: size, cornerRadius: 5)
