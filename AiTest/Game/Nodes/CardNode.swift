@@ -9,6 +9,7 @@ import SpriteKit
 
 enum CardNodeScale: CGFloat {
     case zoom = 3.0
+    case xLarge = 1.8
     case large = 1.5
     case normal = 1.0
     case small = 0.5

@@ -205,7 +205,7 @@ extension GameScene {
         let player = self.gameData.players[self.gameData.currentPlayerIndex]
         
         // 3점 이상이고 이전에 고한 점수 보다 높아야 함
-        if player.baseScore > 2, player.baseScore > player.lastGoScore {
+        if player.baseScore > 2 && player.baseScore > player.lastGoScore {
             // 막장이었으면 고/스톱 선택없이 바로 결과 출력
             if player.handCards.isEmpty {
                 UserDefaults.standard.lastWinnerIndex = player.index
@@ -1093,7 +1093,7 @@ extension GameScene {
             self.gameData.players[playerIndex].handCards.append(lastDeckCard)
             let cardIndex = self.gameData.players[playerIndex].handCards.count
             let movePosition = self.getPlayerHandCardPosition(playerIndex: playerIndex, cardIndex: cardIndex)
-            deckCardNode.moveAndTurnCard(movePosition: movePosition, duration: self.gameData.cardDuration, isFront: playerIndex == 0, afterCardNodeScale: playerIndex == 0 ? .large : .small)
+            deckCardNode.moveAndTurnCard(movePosition: movePosition, duration: self.gameData.cardDuration, isFront: playerIndex == 0, afterCardNodeScale: playerIndex == 0 ? .xLarge : .small)
         }
         
         do { try await Task.sleep(for: .seconds(self.gameData.cardDuration))
@@ -1145,7 +1145,7 @@ extension GameScene {
             }
             else {
                 //print("\(#function) different positioin \(i) current(\(handCardNode.position.x),\(handCardNode.position.y)),target(\(movePosition.x),\(movePosition.y))")
-                handCardNode.moveAndTurnCard(movePosition: movePosition, duration: self.gameData.cardDuration, isFront: playerIndex == 0, movingUpScale: nil, afterCardNodeScale: playerIndex == 0 ? .large : .small)
+                handCardNode.moveAndTurnCard(movePosition: movePosition, duration: self.gameData.cardDuration, isFront: playerIndex == 0, movingUpScale: nil, afterCardNodeScale: playerIndex == 0 ? .xLarge : .small)
             }
         }
     }
@@ -1354,13 +1354,13 @@ extension GameScene {
     }
     
     private func getPlayerHandCardPosition(playerIndex: Int, cardIndex: Int) -> CGPoint {
-        let cardNodeScale = playerIndex == 0 ? CardNodeScale.large.rawValue : CardNodeScale.small.rawValue
+        let cardNodeScale = playerIndex == 0 ? CardNodeScale.xLarge.rawValue : CardNodeScale.small.rawValue
         let cardWidthWithGap = self.cardSize.width * cardNodeScale + self.cardGap
         var startPosition: CGPoint = .zero // 좌측 하단이 시작점
 
         if playerIndex == 0 {
             startPosition.x = self.size.width / 2 + self.cardGap
-            startPosition.y = self.cardGap
+            startPosition.y = 15
         }
         else if let playerNameNode = self.childNode(withName: CapsuledLabelNode.prefixPlayerName + "\(playerIndex)") as? SKLabelNode {
             startPosition.x = playerNameNode.position.x + (playerNameNode.bounds.size.width / 2) + self.cardGap
