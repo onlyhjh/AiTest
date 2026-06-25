@@ -17,6 +17,7 @@ class GameScene: SKScene, ObservableObject {
     var popupData: PopupData
     var isUserTouchCardEnabled = false
     
+    private let ai = AIEngineManager()
     private let emptyCardMonth: Int = 100 // 폭탄 후 빈 카드
     // zPosition > tableCard = 10 ~ 140  deckCard = 1000~카드쌓기, 움직이는카드 10000 > 정지 후 0
     private let deckZPosition: CGFloat = 1000
@@ -213,6 +214,7 @@ extension GameScene {
     
     private func checkScoreAndDoNextPlay() {
         let player = self.gameData.players[self.gameData.currentPlayerIndex]
+        print("\(#function) player:\(player.index), baseScore: \(player.baseScore), lastGoScore: \(player.lastGoScore)")
         
         // 3점 이상이고 이전에 고한 점수 보다 높아야 함
         if player.baseScore > 2 && player.baseScore > player.lastGoScore {
@@ -230,7 +232,10 @@ extension GameScene {
             }
             // Ai
             else {
-                let isGo = self.selectGoOrStopWithAi()
+                let isGo = self.ai.selectGoOrStop(
+                    aiPlayerIndex: player.index,
+                    tableCards: self.allTableCards()
+                )
                 self.afterSelectGoOrStop(isGo: isGo, player: player)
             }
         }
@@ -248,24 +253,18 @@ extension GameScene {
     }
     
     private func aiTurn() {
-        guard let card = self.gameData.players[self.gameData.currentPlayerIndex].handCards.first else { return }
+        let playerIndex = self.gameData.currentPlayerIndex
+        let handCards = self.gameData.players[playerIndex].handCards
+        guard !handCards.isEmpty else { return }
+        let card = self.ai.selectHandCard(
+            aiPlayerIndex: playerIndex,
+            tableCards: self.allTableCards()
+        )
         self.playWithSelectedHandCard(handCard: card)
     }
     
-    private func selectGoOrStopWithAi() -> Bool {
-        return false
-    }
-    
-    private func selectCardWithAi(deckOrHandCard: Card, tableCards: [Card]) -> Card {
-        return tableCards.last!
-    }
-    
-    private func selectGukjinWithAi(card: Card) -> Bool {
-        return true
-    }
-    
-    private func selectWaveWithAi(cards: [Card]) -> Bool {
-        return true
+    private func allTableCards() -> [Card] {
+        self.tableCardGroups.flatMap { $0 }
     }
     
     // 총통 검사 2 (10점)
@@ -343,7 +342,7 @@ extension GameScene {
                     }
                     // ai
                     else {
-                        let isWave = self.selectWaveWithAi(cards: sameMonthPlayerHandCards)
+                        let isWave = self.ai.selectWave(aiPlayerIndex: player.index, cards: sameMonthPlayerHandCards)
                         self.afterWave(isWave: isWave, player: player, handCard: handCard, sameMonthPlayerHandCards: sameMonthPlayerHandCards, nextDeckCardExceptBonus: nextDeckCardExceptBonus)
                     }
                 }
@@ -500,7 +499,11 @@ extension GameScene {
                     }
                     // ai
                     else {
-                        let tableCard = self.selectCardWithAi(deckOrHandCard: handCard, tableCards: matchingTableCards)
+                        let tableCard = self.ai.selectCard(
+                            aiPlayerIndex: player.index,
+                            deckOrHandCard: handCard,
+                            tableCards: matchingTableCards
+                        )
                         self.afterSelectCard(player: player, deckOrHandCard: handCard, tableCard: tableCard)
                     }
                 }
@@ -619,7 +622,7 @@ extension GameScene {
                         })
                     }
                     else {
-                        let selectCard = self.selectCardWithAi(deckOrHandCard: deckCard, tableCards: matchingTableCards)
+                        let selectCard = self.ai.selectCard(aiPlayerIndex: self.gameData.currentPlayerIndex, deckOrHandCard: deckCard, tableCards: matchingTableCards)
                         Task {
                             await self.moveMatchingCardsToPlayerCaptured(playerIndex: player.index, deckOrHandCards: [deckCard], tableCards: [selectCard]){
                                 self.checkScoreAndDoNextPlay()
@@ -790,51 +793,21 @@ extension GameScene {
     
     private func showWinnerPopup(winnerIndex: Int, wasNagari: Bool) {
         self.gameData.winnerIndex = winnerIndex
-        
-        var winner = self.gameData.players[winnerIndex]
-        var player1 = self.gameData.players[(winnerIndex + 1) % 3]
-        var player2 = self.gameData.players[(winnerIndex + 2) % 3]
-        
-        winner.wasNagari = wasNagari
-        
-        if winner.gwangScore > 0 {
-            player1.isGwangBak = player1.gwangCount == 0
-            player2.isGwangBak = player2.gwangCount == 0
-        }
-        
-        if winner.piScore > 0 {
-            player1.isPiBak = player1.piCount > 0 && player1.piCount < 6
-            player2.isPiBak = player2.piCount > 0 && player2.piCount < 6
-        }
-        
-        // 독박 확인
-        player1.finalScore = winner.subtotalScore * (player1.isGwangBak ? 2 :1) * (player1.isPiBak ? 2 : 1) * (player1.isGoBak ? 2 : 1)
-        player2.finalScore = winner.subtotalScore * (player2.isGwangBak ? 2 :1) * (player2.isPiBak ? 2 : 1) * (player2.isGoBak ? 2 : 1)
-        
         let goBakPlayerIndex = self.getGoBakPlayerIndex(winnerIndex: winnerIndex)
-        if let goBakPlayerIndex {
-            if goBakPlayerIndex == player1.index {
-                player1.isGoBak = true
-                player1.finalScore += player2.finalScore
-                player2.finalScore = 0
-            }
-            else if goBakPlayerIndex == player2.index {
-                player2.isGoBak = true
-                player2.finalScore += player1.finalScore
-                player1.finalScore = 0
-            }
-        }
-        winner.finalScore = player1.finalScore + player2.finalScore
+        let players = ScoreEngine().getPlayersFinalScore(winnerIndex: winnerIndex, gameData: self.gameData, wasNagari: wasNagari, goBakPlayerIndex: goBakPlayerIndex)
+        let winner = players[0]
+        let loser1 = players[1]
+        let loser2 = players[2]
         
-        PopupManager.shared.showPopup(popupData: self.popupData, type: .winner, cards: [], players: [winner, player1, player2], completion: { select in
+        PopupManager.shared.showPopup(popupData: self.popupData, type: .winner, cards: [], players: players, completion: { select in
             if let goBakPlayerIndex {
                 self.collectMoney(winnerIndex: winnerIndex, loserIndex: goBakPlayerIndex, money: winner.finalScore){
                     self.newGame()
                 }
             }
             else {
-                self.collectMoney(winnerIndex: winnerIndex, loserIndex: player1.index, money: player1.finalScore){
-                    self.collectMoney(winnerIndex: winnerIndex, loserIndex: player2.index, money: player2.finalScore){
+                self.collectMoney(winnerIndex: winnerIndex, loserIndex: loser1.index, money: loser1.finalScore){
+                    self.collectMoney(winnerIndex: winnerIndex, loserIndex: loser2.index, money: loser2.finalScore){
                         self.newGame()
                     }
                 }
@@ -1004,7 +977,7 @@ extension GameScene {
             // ai
             else {
                 //  쌍피 선택
-                let isDoublePi = self.selectGukjinWithAi(card: gukjinCard)
+                let isDoublePi = self.ai.selectGukjin(aiPlayerIndex: playerIndex, card: gukjinCard)
                 self.afterSelectGukjin(isDoublePi: isDoublePi, playerIndex: playerIndex, card: gukjinCard, tableCardGroupIndex: tableCardGroupIndex, completion: completion)
             }
         }
@@ -1052,7 +1025,7 @@ extension GameScene {
             // ai
             else {
                 //  쌍피 선택
-                if self.selectGukjinWithAi(card: gukjinCard) {
+                if self.ai.selectGukjin(aiPlayerIndex: playerIndex, card: gukjinCard) {
                     self.moveCardToPlayerCaptured(playerIndex: playerIndex, card: gukjinCard, forcedType: .pi)
                     self.sortTableCardGroup(tableCardGroupIndex: tableCardGroupIndex)
                 }
