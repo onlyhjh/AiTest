@@ -12,8 +12,8 @@ class PlayerIconNode: SKCropNode {
     static let prefixName = "playerIconNode_"
     static let borderNodeName = "borderNode"
     static let blinkBorderName = "blinkBorderNode"
-    
-    init(player: Player, position: CGPoint, size: CGSize) {
+
+    init(player: Player, size: CGSize, isBlink: Bool) {
         super.init()
         
         let playerImageNode = SKSpriteNode(imageNamed: player.imageName)
@@ -29,15 +29,23 @@ class PlayerIconNode: SKCropNode {
         borderNode.name = PlayerIconNode.borderNodeName
         borderNode.strokeColor = .white.withAlphaComponent(0.5)
         borderNode.lineWidth = 3.0
-        borderNode.fillColor = .clear
+        borderNode.fillColor = isBlink ? .yellow : .clear
         borderNode.zPosition = 100
+        
+        if isBlink {
+            // 깜빡이는 액션
+            let fadeOut = SKAction.fadeAlpha(to: 0.0, duration: 0.5)
+            let fadeIn = SKAction.fadeAlpha(to: 0.5, duration: 0.5)
+            let blink = SKAction.repeatForever(
+                SKAction.sequence([fadeOut, fadeIn])
+            )
+            borderNode.run(blink)
+        }
         
         self.name = PlayerIconNode.prefixName + "\(player.index)"
         self.maskNode = playerImageMaskNode
         self.addChild(playerImageNode)
         self.addChild(borderNode)
-        self.position.x = position.x + size.height / 2
-        self.position.y = position.y + size.height / 2
     }
     
     required init?(coder aDecoder: NSCoder) {

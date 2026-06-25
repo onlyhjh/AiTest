@@ -23,8 +23,8 @@ class GameScene: SKScene, ObservableObject {
     private var tableCardGroups: [[Card]] = []
     private var deckCards: [Card] = []
     
-    private var cardSize: CGSize = .zero
-    private var playerImageSize: CGSize = .zero
+    private var normalCardSize: CGSize = .zero
+    private var playerIconDiameter : CGFloat { normalCardSize.height }
     private var cardGap: CGFloat = 0
     private var cardLayeredGap: CGFloat = 0
     
@@ -43,10 +43,9 @@ class GameScene: SKScene, ObservableObject {
     
     override func didMove(to view: SKView) {
         DispatchQueue.main.async {
-            self.cardSize = CGSize(width: self.size.height / 14, height: self.size.height / 14 * 1.5)
-            self.playerImageSize = CGSize(width: self.cardSize.height, height: self.cardSize.height)
-            self.cardGap = self.cardSize.width / 10
-            self.cardLayeredGap = self.cardSize.width / 5
+            self.normalCardSize = CGSize(width: self.size.height / 14, height: self.size.height / 14 * 1.5)
+            self.cardGap = self.normalCardSize.width / 10
+            self.cardLayeredGap = self.normalCardSize.width / 5
         }
     }
     
@@ -84,6 +83,12 @@ class GameScene: SKScene, ObservableObject {
 
 
 extension GameScene {
+    // load로 플레이 한 경우가 아닌 정상 케이스
+    private func newGame() {
+        self.gameData.deckCards = DeckFactory().generateFullDeck()
+        startGame()
+    }
+    
     private func startGame() {
         self.removeAllChildren()
         self.setBackgroundNodes()
@@ -96,15 +101,20 @@ extension GameScene {
         
         for i in 0...2 {
             self.clearPlayerGameStatus(i)
-            self.setPlayerNodes(player: self.gameData.players[i])
+            self.setPlayerNodes(player: self.gameData.players[i], isBlink: i == self.gameData.currentPlayerIndex)
         }
         
         Task {
             // Test : player captured영역 확인을 위해 전체 카드 주기 */
 //            for _ in 0..<self.deckCards.count - 1 {
-//                await self.moveDeckCardToPlayerCaptured(playerIndex: 0)
+//                await self.moveDeckCardToPlayerCaptured(playerIndex: 2)
 //            }
-//            self.showWinnerPopup(winnerIndex: 0, wasNagari: true)
+//            return
+            
+            // Test Deck카드 테이블로
+//            for _ in 0..<self.deckCards.count - 1 {
+//                await self.moveDeckCardToTable()
+//            }
 //            return
             
             // Test 특정카드 사용자에게
@@ -160,7 +170,7 @@ extension GameScene {
         //  이전 플레이어도 정리해 줘야 함
         for i in 0...2 {
             self.sortPlayerHandCards(playerIndex: i)
-            self.setStrokeWithBlinkToPlayerNode(playerIndex: i)
+            self.setPlayerNodes(player: self.gameData.players[i], isBlink: i == self.gameData.currentPlayerIndex)
         }
         
         Task {
@@ -228,7 +238,7 @@ extension GameScene {
         else if self.gameData.players[0].handCards.isEmpty && self.gameData.players[1].handCards.isEmpty && self.gameData.players[2].handCards.isEmpty {
             PopupManager.shared.showPopup(popupData: self.popupData, type: .nagari, cards: [], players: []) { _ in
                 UserDefaults.standard.wasNagari = true
-                self.startGame()
+                self.newGame()
             }
         }
         else {
@@ -403,7 +413,7 @@ extension GameScene {
                                     self.gameData.winnerIndex = player.index
                                     UserDefaults.standard.lastWinnerIndex = player.index
                                     UserDefaults.standard.wasNagari = false
-                                    self.startGame()
+                                    self.newGame()
                                 }
                             }
                             else {
@@ -412,7 +422,7 @@ extension GameScene {
                                         self.gameData.winnerIndex = player.index
                                         UserDefaults.standard.lastWinnerIndex = player.index
                                         UserDefaults.standard.wasNagari = false
-                                        self.startGame()
+                                        self.newGame()
                                     }
                                 }
                             }
@@ -713,7 +723,7 @@ extension GameScene {
     
     private func setEmptyPlayerHandCards(playerIndex: Int, count: Int) async {
         let scaleRate = playerIndex == 0 ? CardNodeScale.normal.rawValue : CardNodeScale.small.rawValue
-        let cardSize = CGSize(width: self.cardSize.width * scaleRate, height: self.cardSize.height * scaleRate)
+        let cardSize = CGSize(width: self.normalCardSize.width * scaleRate, height: self.normalCardSize.height * scaleRate)
 
         for i in 0..<count {
             let card = Card(month: self.emptyCardMonth, type: .gwang, imageName: Card.emptyImageName)
@@ -819,13 +829,13 @@ extension GameScene {
         PopupManager.shared.showPopup(popupData: self.popupData, type: .winner, cards: [], players: [winner, player1, player2], completion: { select in
             if let goBakPlayerIndex {
                 self.collectMoney(winnerIndex: winnerIndex, loserIndex: goBakPlayerIndex, money: winner.finalScore){
-                    self.startGame()
+                    self.newGame()
                 }
             }
             else {
                 self.collectMoney(winnerIndex: winnerIndex, loserIndex: player1.index, money: player1.finalScore){
                     self.collectMoney(winnerIndex: winnerIndex, loserIndex: player2.index, money: player2.finalScore){
-                        self.startGame()
+                        self.newGame()
                     }
                 }
             }
@@ -879,10 +889,9 @@ extension GameScene {
         print("\(#function) card: \(card.month), \(card.type)")
         guard let cardNode = childNode(withName: card.id.uuidString) as? CardNode else { return }
         cardNode.removeStroke()
-        let groupIndex = tableCardGroupIndex ?? self.getTableCardGroupIndex(cardMonth: cardNode.card.month) ?? self.getEmptyTableCardGroupIndex(cardMonth: cardNode.card.month)
-        let cardIndexByGroup = self.tableCardGroups[groupIndex].count
-        let zPosition = self.getTableCardZPosition(groupIndex: groupIndex, cardIndexByGroup: cardIndexByGroup)
-        let movePosition = self.getTableCardPosition(groupIndex: groupIndex, cardIndexByGroup: cardIndexByGroup)
+        let cardIndexByGroup = self.tableCardGroups[tableCardGroupIndex].count
+        let zPosition = self.getTableCardZPosition(groupIndex: tableCardGroupIndex, cardIndexByGroup: cardIndexByGroup)
+        let movePosition = self.getTableCardPosition(groupIndex: tableCardGroupIndex, cardIndexByGroup: cardIndexByGroup)
         self.tableCardGroups[tableCardGroupIndex].append(card)
         cardNode.moveAndTurnCard(movePosition: movePosition, duration: self.gameData.cardDuration, isFront: true, zPosition: Int(zPosition),afterCardNodeScale: .large)
     }
@@ -1090,10 +1099,10 @@ extension GameScene {
         for _ in 0..<count {
             guard let deckCardNode = childNode(withName: deckCards.last?.id.uuidString ?? "") as? CardNode else { return }
             let lastDeckCard = self.deckCards.removeLast()
-            self.gameData.players[playerIndex].handCards.append(lastDeckCard)
             let cardIndex = self.gameData.players[playerIndex].handCards.count
             let movePosition = self.getPlayerHandCardPosition(playerIndex: playerIndex, cardIndex: cardIndex)
-            deckCardNode.moveAndTurnCard(movePosition: movePosition, duration: self.gameData.cardDuration, isFront: playerIndex == 0, afterCardNodeScale: playerIndex == 0 ? .xLarge : .small)
+            self.gameData.players[playerIndex].handCards.append(lastDeckCard)
+            deckCardNode.moveAndTurnCard(movePosition: movePosition, duration: self.gameData.cardDuration, isFront: playerIndex == 0, afterCardNodeScale: playerIndex == 0 ? .large : .small)
         }
         
         do { try await Task.sleep(for: .seconds(self.gameData.cardDuration))
@@ -1132,7 +1141,7 @@ extension GameScene {
             
             // 사용자 카드가 테이블에 있으면 깜빡이게 표시하기 or 보너스카드
             if self.gameData.currentPlayerIndex == 0 && playerIndex == 0 && (handCard.month == 100 || handCard.month == 0 || self.getTableCardGroupIndex(cardMonth: handCard.month) != nil) {
-                handCardNode.addStrokeWithBlink(size: self.cardSize)
+                handCardNode.addStrokeWithBlink(size: self.normalCardSize)
             }
             else {
                 handCardNode.removeStroke()
@@ -1145,7 +1154,7 @@ extension GameScene {
             }
             else {
                 //print("\(#function) different positioin \(i) current(\(handCardNode.position.x),\(handCardNode.position.y)),target(\(movePosition.x),\(movePosition.y))")
-                handCardNode.moveAndTurnCard(movePosition: movePosition, duration: self.gameData.cardDuration, isFront: playerIndex == 0, movingUpScale: nil, afterCardNodeScale: playerIndex == 0 ? .xLarge : .small)
+                handCardNode.moveAndTurnCard(movePosition: movePosition, duration: self.gameData.cardDuration, isFront: playerIndex == 0, movingUpScale: nil, afterCardNodeScale: playerIndex == 0 ? .large : .small)
             }
         }
     }
@@ -1328,7 +1337,7 @@ extension GameScene {
         self.deckCards = self.gameData.deckCards
         
         for i in 0 ..< deckCards.count {
-            let node = CardNode(name: deckCards[i].id.uuidString, card: deckCards[i], cardSize: cardSize, isFront: false)
+            let node = CardNode(name: deckCards[i].id.uuidString, card: deckCards[i], cardSize: self.normalCardSize, isFront: false)
             node.position = CGPoint(x: startX + CGFloat(i), y: startY - CGFloat(i))
             node.zPosition = self.deckZPosition + CGFloat(i)
             self.addChild(node)
@@ -1343,7 +1352,7 @@ extension GameScene {
         let startX = round(size.width / 2)
         let startY = round(size.height / 2) - cardGap * 5
         
-        let cardWidthWithGap = self.cardSize.width * CardNodeScale.large.rawValue + self.cardGap
+        let cardWidthWithGap = self.normalCardSize.width * CardNodeScale.large.rawValue + self.cardGap
         let sp = CGFloat(cardIndexByGroup) * self.cardLayeredGap * CardNodeScale.large.rawValue
         if groupIndex % 2 == 0 {
             return CGPoint(x:startX - cardWidthWithGap / 2 - cardWidthWithGap * CGFloat(groupIndex / 2 + 1) + sp, y: startY - sp)
@@ -1354,46 +1363,46 @@ extension GameScene {
     }
     
     private func getPlayerHandCardPosition(playerIndex: Int, cardIndex: Int) -> CGPoint {
-        let cardNodeScale = playerIndex == 0 ? CardNodeScale.xLarge.rawValue : CardNodeScale.small.rawValue
-        let cardWidthWithGap = self.cardSize.width * cardNodeScale + self.cardGap
         var startPosition: CGPoint = .zero // 좌측 하단이 시작점
+        var cardWidth: CGFloat = 0
 
         if playerIndex == 0 {
-            startPosition.x = self.size.width / 2 + self.cardGap
-            startPosition.y = 15
+            cardWidth = self.normalCardSize.width * CardNodeScale.large.rawValue
+            startPosition.x = self.size.width / 2 + (cardWidth / 2)
+            startPosition.y = self.normalCardSize.height * CardNodeScale.large.rawValue / 2 + self.cardGap
         }
         else if let playerNameNode = self.childNode(withName: CapsuledLabelNode.prefixPlayerName + "\(playerIndex)") as? SKLabelNode {
-            startPosition.x = playerNameNode.position.x + (playerNameNode.bounds.size.width / 2) + self.cardGap
-            startPosition.y = playerNameNode.position.y - (self.cardSize.height * cardNodeScale) - self.cardGap
+            cardWidth = self.normalCardSize.width * CardNodeScale.small.rawValue + self.cardGap
+            startPosition.x = playerNameNode.position.x + (playerNameNode.bounds.size.width / 2) + cardWidth + self.cardGap
+            startPosition.y = self.size.height - (self.normalCardSize.height * CardNodeScale.small.rawValue / 2) - self.cardGap
         }
         else {
             print("\(#function) empty childNode: \(CapsuledLabelNode.prefixPlayerName)\(playerIndex)")
-            startPosition.x = (playerIndex == 2 ? 0.0 : self.size.width / 2) + self.cardGap
-            startPosition.y = size.height + (cardSize.height / 2) - self.cardGap
         }
 
         var position: CGPoint = .zero
-        position.x = startPosition.x + (self.cardSize.width / 2) + CGFloat(cardIndex) * cardWidthWithGap
-        position.y = startPosition.y + (self.cardSize.height * CardNodeScale.large.rawValue / 2)
+        position.x = startPosition.x + CGFloat(cardIndex) * (cardWidth + self.cardGap)
+        position.y = startPosition.y
         return position
     }
     
     private func getPlayerCapturedCardPosition(playerIndex: Int, cardIndexByType: Int, cardType: CardType) -> CGPoint {
         print("\(#function) cardIndexByType: \(cardIndexByType), cardType: \(cardType)")
-        let cardHeightWithGap = self.cardSize.height + self.cardGap
+        let playerNameNodeHeight = self.childNode(withName: CapsuledLabelNode.prefixPlayerName + "0")?.frame.height ?? self.playerIconDiameter / 2
+        let cardHeightWithGap = self.normalCardSize.height + self.cardGap
         var startPosition: CGPoint = .zero // 좌측 하단이 시작점
-        startPosition.x = (playerIndex == 1 ? self.size.width / 2 : 0.0) + self.playerImageSize.width + (self.cardGap * 2)
-        startPosition.y = playerIndex == 0 ? self.cardGap : size.height - (cardSize.height / 2) - cardHeightWithGap * 3 - (self.cardGap * 2)
+        startPosition.x = (playerIndex == 1 ? self.size.width / 2 : 0.0) + self.normalCardSize.height + (self.cardGap * 2)
+        startPosition.y = playerIndex == 0 ? self.cardGap : self.size.height - playerNameNodeHeight - cardHeightWithGap * 3 - self.cardGap * 3
         var position: CGPoint = .zero
-        position.x = startPosition.x  + (cardSize.width / 2) + (cardSize.width / 2.5) * CGFloat(cardIndexByType) + ( cardType == .tti ? self.size.width / 5 : 0)
-        position.y = startPosition.y + (cardSize.height / 2) + cardHeightWithGap * (cardType == .gwang ? 2.0 : cardType == .pi ? 0.0 : 1.0)
+        position.x = startPosition.x  + (self.normalCardSize.width / 2) + (self.normalCardSize.width / 2.5) * CGFloat(cardIndexByType) + ( cardType == .tti ? self.size.width / 5 : 0)
+        position.y = startPosition.y + (self.normalCardSize.height / 2) + cardHeightWithGap * (cardType == .gwang ? 2.0 : cardType == .pi ? 0.0 : 1.0)
         return position
     }
     
     private func setBackgroundNodes() {
         let startY = round(size.height / 2) - cardGap * 5
         
-        let deckAreaNode = SKShapeNode(rect: CGRect(x: 0, y: startY - cardSize.height , width: self.size.width, height: cardSize.height * 2))
+        let deckAreaNode = SKShapeNode(rect: CGRect(x: 0, y: startY - self.normalCardSize.height , width: self.size.width, height: self.normalCardSize.height * 2))
         deckAreaNode.fillColor = .black.withAlphaComponent(0.7)
         deckAreaNode.strokeColor = .clear
         self.addChild(deckAreaNode)
@@ -1420,71 +1429,51 @@ extension GameScene {
         }
     }
     
-    private func setStrokeWithBlinkToPlayerNode(playerIndex: Int) {
-        guard let playerIconNode = self.childNode(withName: PlayerIconNode.prefixName + "\(playerIndex)") else { return }
-        print("playerIndex \(playerIndex) == currentPlayerIndex: \(self.gameData.currentPlayerIndex)")
-        if playerIndex == self.gameData.currentPlayerIndex {
-            let borderNode = SKShapeNode(rectOf: self.playerImageSize, cornerRadius: self.playerImageSize.width / 2)
-            borderNode.name = PlayerIconNode.blinkBorderName
-            borderNode.strokeColor = .yellow.withAlphaComponent(0.5)
-            borderNode.lineWidth = 10.0
-            borderNode.fillColor = .clear
-            borderNode.zPosition = 100
-            playerIconNode.addChild(borderNode)
-            
-            // 깜빡이는 액션
-            let fadeOut = SKAction.fadeAlpha(to: 0.2, duration: 0.3)
-            let fadeIn = SKAction.fadeAlpha(to: 1.0, duration: 0.3)
-            let blink = SKAction.repeatForever(
-                SKAction.sequence([fadeOut, fadeIn])
-            )
-            borderNode.run(blink)
-        }
-        else {
-            if let borderNode = playerIconNode.childNode(withName: PlayerIconNode.blinkBorderName) {
-                borderNode.removeFromParent()
-            }
-            else {
-                print("not found blinkBorderName")
-                for node in playerIconNode.children {
-                    print("... \(node.name)")
-                }
-            }
-        }
-    }
-    
-    private func updatePlayers() { 
+    private func updatePlayers() {
         for i in 0...2 {
             guard let playerNameNode = self.childNode(withName: CapsuledLabelNode.prefixPlayerName + "\(i)") else { return }
             guard let playerIconNode = self.childNode(withName: PlayerIconNode.prefixName + "\(i)") else { return }
             self.removeChildren(in: [playerNameNode, playerIconNode])
-            self.setPlayerNodes(player: self.gameData.players[i])
-            self.setStrokeWithBlinkToPlayerNode(playerIndex: i)
+            self.setPlayerNodes(player: self.gameData.players[i], isBlink: i == self.gameData.currentPlayerIndex)
         }
     }
     
-    private func setPlayerNodes(player: Player) {
-        let cardHeightWithGap = self.cardSize.height + self.cardGap
-        var startPosition: CGPoint = .zero // 좌측 하단이 시작점
+    private func setPlayerNodes(player: Player, isBlink: Bool) {
+        var startPosition: CGPoint = .zero
+        let playerIconNodeSize = CGSize(width: self.playerIconDiameter * (isBlink ? 1.5 : 1),  height: self.playerIconDiameter * (isBlink ? 1.5 : 1))
+        let playerIconNode = PlayerIconNode(player: player, size: playerIconNodeSize, isBlink: isBlink)
         let playerNameNode = CapsuledLabelNode(player: player)
+        // remove old node
+        if let oldOne = self.childNode(withName: PlayerIconNode.prefixName + "\(player.index)") { oldOne.removeFromParent() }
+        if let oldOne = self.childNode(withName: CapsuledLabelNode.prefixPlayerName + "\(player.index)") { oldOne.removeFromParent() }
         
         switch player.index {
         case 1:
             startPosition.x = (self.size.width / 2) + self.cardGap
-            startPosition.y = self.size.height - self.cardSize.height - self.cardGap
+            startPosition.y = self.size.height - self.cardGap
         case 2:
             startPosition.x = self.cardGap
-            startPosition.y = self.size.height - self.cardSize.height - self.cardGap
+            startPosition.y = self.size.height - self.cardGap
         default: // user
-            startPosition.x = (self.size.width - self.playerImageSize.width - playerNameNode.frame.width) / 2
-            startPosition.y = cardHeightWithGap * 2 /*+ (self.playerImageSize.height / 2) - self.cardGap * 5*/
+            startPosition.x = (self.size.width / 2) + self.cardGap
+            // 카드 위
+            startPosition.y = self.normalCardSize.height * CardNodeScale.large.rawValue + self.cardGap + self.cardGap
         }
 
-        let playerIconNode = PlayerIconNode(player: player, position: startPosition, size: self.playerImageSize)
+        if player.index == 0 {
+            playerIconNode.position.x = startPosition.x + (self.playerIconDiameter * (isBlink ? 1.5 : 1) / 2)
+            playerIconNode.position.y = startPosition.y + (self.playerIconDiameter * (isBlink ? 1.5 : 1) / 2)
+            playerNameNode.position.x = startPosition.x + self.playerIconDiameter + playerNameNode.bounds.width / 2 + 10
+            playerNameNode.position.y = startPosition.y + self.playerIconDiameter / 4
+        }
+        else {
+            playerIconNode.position.x = startPosition.x + (self.playerIconDiameter * (isBlink ? 1.5 : 1) / 2)
+            playerIconNode.position.y = startPosition.y - (self.playerIconDiameter * (isBlink ? 1.5 : 1) / 2)
+            playerNameNode.position.x = startPosition.x + self.normalCardSize.height + playerNameNode.bounds.width / 2 + 10
+            playerNameNode.position.y = startPosition.y - self.normalCardSize.height / 2
+        }
+        
         self.addChild(playerIconNode)
-    
-        playerNameNode.position.x = startPosition.x + self.playerImageSize.width + playerNameNode.bounds.width / 2 + 10
-        playerNameNode.position.y = startPosition.y + (player.index == 0 ? self.playerImageSize.height / 4 : self.playerImageSize.height / 2)
         self.addChild(playerNameNode)
     }
     
