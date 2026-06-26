@@ -16,22 +16,16 @@
 import Foundation
 
 final class ClaudeAIEngine: AIEngine {
-    var gameData: GameData!
-
-    func setGameData(_ gameData: GameData) {
-        self.gameData = gameData
-    }
-
     // MARK: - 1. 손패 카드 선택 (핵심 전략)
     /// AI가 낼 손패 카드를 선택한다.
     /// 우선순위: ① 폭발 가능(3장 같은 달) ② 매칭 있는 카드 중 EV 최대 ③ 매칭 없는 카드 중 버리기 최적
-    func selectHandCard(aiPlayerIndex: Int, tableCards: [Card]) -> Card {
-        let player = gameData.players[aiPlayerIndex]
+    func selectHandCard(gameData: GameData, playerIndex: Int) -> Card {
+        let player = gameData.players[playerIndex]
         let hand = player.handCards.filter { $0.month != 100 } // 빈 카드 제외
         guard !hand.isEmpty else { return player.handCards[0] }
 
-        let tableGroups = groupByMonth(tableCards)
-        let opponents = opponents(of: aiPlayerIndex)
+        let tableGroups = groupByMonth(gameData.allTableCards)
+        let opponents = opponents(gameData: gameData, of: playerIndex)
 
         // ① 폭탄 가능 여부 체크 (손에 3장 + 테이블 1장)
         for card in hand {
@@ -67,9 +61,9 @@ final class ClaudeAIEngine: AIEngine {
 
     // MARK: - 2. 고/스톱 결정
     /// 고를 할지 스톱을 할지 결정한다.
-    func selectGoOrStop(aiPlayerIndex: Int, tableCards: [Card] = []) -> Bool {
-        let player = gameData.players[aiPlayerIndex]
-        let opponents = opponents(of: aiPlayerIndex)
+    func selectGoOrStop(gameData: GameData, playerIndex: Int) -> Bool {
+        let player = gameData.players[playerIndex]
+        let opponents = opponents(gameData: gameData, of: playerIndex)
         let currentScore = player.baseScore
 
         // 현재 점수가 7점 이상이면 거의 항상 스톱 (배율 리스크)
@@ -94,7 +88,7 @@ final class ClaudeAIEngine: AIEngine {
         }
 
         // 고도리/청단/홍단/초단 완성이 1장 남은 경우 고 고려
-        if isOneAwayFromBonus(player: player, tableCards: tableCards) && remainingCards >= 3 {
+        if isOneAwayFromBonus(player: player, tableCards: gameData.allTableCards) && remainingCards >= 3 {
             return true
         }
 
@@ -103,11 +97,11 @@ final class ClaudeAIEngine: AIEngine {
 
     // MARK: - 3. 테이블 카드 2장 중 선택
     /// 매칭 카드가 2장일 때 가져갈 카드를 선택한다.
-    func selectCard(aiPlayerIndex: Int, deckOrHandCard: Card, tableCards: [Card]) -> Card {
+    func selectCard(gameData: GameData, playerIndex: Int, deckOrHandCard: Card, tableCards: [Card]) -> Card {
         guard tableCards.count >= 2 else { return tableCards.last! }
 
-        let player = gameData.players[aiPlayerIndex]
-        let opponents = opponents(of: aiPlayerIndex)
+        let player = gameData.players[playerIndex]
+        let opponents = opponents(gameData: gameData, of: playerIndex)
 
         let scores = tableCards.map { card in
             (card: card, value: singleCardValue(card: card, player: player, opponents: opponents))
@@ -118,8 +112,8 @@ final class ClaudeAIEngine: AIEngine {
     // MARK: - 4. 국진 선택 (쌍피 vs 열끗)
     /// 9월 열끗(국진)을 쌍피로 가져갈지, 열끗으로 가져갈지 결정한다.
     /// true = 쌍피, false = 열끗
-    func selectGukjin(aiPlayerIndex: Int, card: Card) -> Bool {
-        let player = gameData.players[aiPlayerIndex]
+    func selectGukjin(gameData: GameData, playerIndex: Int) -> Bool {
+        let player = gameData.players[playerIndex]
 
         // 열끗이 4개 이상이면 열끗으로 가져가는 게 더 유리 (5개부터 1점)
         if player.yeolCount >= 4 {
@@ -148,9 +142,9 @@ final class ClaudeAIEngine: AIEngine {
     // MARK: - 5. 흔들기 선택
     /// 손에 같은 달 3장이 있을 때 흔들기를 할지 결정한다.
     /// true = 흔들기
-    func selectWave(aiPlayerIndex: Int, cards: [Card]) -> Bool {
-        let player = gameData.players[aiPlayerIndex]
-        let opponents = opponents(of: aiPlayerIndex)
+    func selectWave(gameData: GameData, playerIndex: Int, cards: [Card]) -> Bool {
+        let player = gameData.players[playerIndex]
+        let opponents = opponents(gameData: gameData, of: playerIndex)
 
         // 이미 흔들기를 한 적 있으면 다시 하면 배율 x4 → 리스크 큼
         if player.waveCount >= 1 { return false }
@@ -174,7 +168,7 @@ final class ClaudeAIEngine: AIEngine {
 private extension ClaudeAIEngine {
 
     // 상대방 플레이어 배열
-    func opponents(of playerIndex: Int) -> [Player] {
+    func opponents(gameData: GameData, of playerIndex: Int) -> [Player] {
         gameData.players.filter { $0.index != playerIndex }
     }
 

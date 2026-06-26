@@ -46,6 +46,7 @@ class PlayerIconNode: SKCropNode {
         self.maskNode = playerImageMaskNode
         self.addChild(playerImageNode)
         self.addChild(borderNode)
+        self.zPosition = -100
     }
     
     required init?(coder aDecoder: NSCoder) {

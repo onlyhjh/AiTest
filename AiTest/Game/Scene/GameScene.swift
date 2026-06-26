@@ -17,13 +17,10 @@ class GameScene: SKScene, ObservableObject {
     var popupData: PopupData
     var isUserTouchCardEnabled = false
     
-    private let ai = AIEngineManager()
+    private let aiManager = AIEngineManager()
     private let emptyCardMonth: Int = 100 // 폭탄 후 빈 카드
     // zPosition > tableCard = 10 ~ 140  deckCard = 1000~카드쌓기, 움직이는카드 10000 > 정지 후 0
     private let deckZPosition: CGFloat = 1000
-    private var tableCardGroups: [[Card]] = []
-    private var deckCards: [Card] = []
-    
     private var normalCardSize: CGSize = .zero
     private var playerIconDiameter : CGFloat { normalCardSize.height }
     private var cardGap: CGFloat = 0
@@ -55,8 +52,10 @@ class GameScene: SKScene, ObservableObject {
         switch self.gameData.gameStatus {
         case .start:
             self.startGame()
+        case .restart:
+            self.startGame(savedDeckCards: self.gameData.origianalDeckCards)
         case .updatePlayers:
-            self.updatePlayers()
+            self.updateAllPlayerNodesAndStatus(isClear: false)
         default:
             break
         }
@@ -84,51 +83,39 @@ class GameScene: SKScene, ObservableObject {
 
 
 extension GameScene {
-    // load로 플레이 한 경우가 아닌 정상 케이스
-    private func newGame() {
-        self.gameData.deckCards = DeckFactory().generateFullDeck()
-        startGame()
-    }
-    
-    private func startGame() {
+    private func startGame(savedDeckCards: [Card]? = nil) {
+        print("savedDeckCards count: \(savedDeckCards?.count)")
+        let newDeckCards = savedDeckCards ?? DeckFactory().generateFullDeck()
+        self.gameData.resetGameData(newDeckCards : newDeckCards)
         self.removeAllChildren()
         self.setBackgroundNodes()
-        self.setDeckCards()
-        self.tableCardGroups = [[], [], [], [], [], [], [], [], [], [], [], [], [], []]
-        
-        self.gameData.winnerIndex = UserDefaults.standard.lastWinnerIndex ?? 1
-        self.gameData.currentPlayerIndex = self.gameData.winnerIndex
-        self.gameData.goHistory = []
-        
-        for i in 0...2 {
-            self.clearPlayerGameStatus(i)
-            self.setPlayerNodes(player: self.gameData.players[i], isBlink: i == self.gameData.currentPlayerIndex)
-        }
+        self.setDeckCardNodes(deckCards: newDeckCards)
+        self.updateAllPlayerNodesAndStatus(isClear: true)
         
         Task {
             // Test : player captured영역 확인을 위해 전체 카드 주기 */
-//            for _ in 0..<self.deckCards.count - 1 {
+//            for _ in 0..<self.gameData.deckCards.count - 1 {
 //                await self.moveDeckCardToPlayerCaptured(playerIndex: 2)
 //            }
 //            return
             
             // Test Deck카드 테이블로
-//            for _ in 0..<self.deckCards.count - 1 {
+//            for _ in 0..<self.gameData.deckCards.count - 1 {
 //                await self.moveDeckCardToTable()
 //            }
 //            return
             
             // Test 특정카드 사용자에게
-//            for (i, card) in self.deckCards.enumerated().reversed() {
+//            for (i, card) in self.gameData.deckCards.enumerated().reversed() {
 //                if card.type != .gwang && card.month == 1  {
-//                    let element = self.deckCards.remove(at: i)
-//                    self.deckCards.insert(element, at: self.deckCards.count - 4)
+//                    let element = self.gameData.deckCards.remove(at: i)
+//                    self.gameData.deckCards.insert(element, at: self.gameData.deckCards.count - 4)
 //                }
 //            }
-//            for (i, card) in self.deckCards.enumerated().reversed() {
+//            for (i, card) in self.gameData.deckCards.enumerated().reversed() {
 //                if card.type == .yeol && card.month > 5 && card.piNum == 0 {
-//                    let element = self.deckCards.remove(at: i)
-//                    self.deckCards.insert(element, at: 26)
+//                    let element = self.gameData.deckCards.remove(at: i)
+//                    self.gameData.deckCards.insert(element, at: 26)
 //                    break
 //                }
 //            }
@@ -178,15 +165,20 @@ extension GameScene {
             do { try await Task.sleep(for: .seconds(1.0))
             } catch { print("error: \(error)")}
             
+            
             switch self.gameData.currentPlayerIndex {
             case 0:
                 self.isUserTouchCardEnabled = true
-                // 보너스카드 뒤 뻑카드 처리 테스트용
-                if self.deckCards.count > 2 {
-                    print("???? next Deck Cards: \(self.deckCards[self.deckCards.count - 1].month) > \(self.deckCards[self.deckCards.count - 2].month)")
+                // 보너스카드 뒤 뻑카드 테스트용
+                if self.gameData.deckCards.count > 2 {
+                    print("???? next Deck Cards: \(self.gameData.deckCards[self.gameData.deckCards.count - 1].month) > \(self.gameData.deckCards[self.gameData.deckCards.count - 2].month)")
                 }
             case 1, 2:
-                self.aiTurn()
+                let playerIndex = self.gameData.currentPlayerIndex
+                let handCards = self.gameData.players[playerIndex].handCards
+                guard !handCards.isEmpty else { return }
+                let card = self.aiManager.selectHandCard(gameData: self.gameData, playerIndex: playerIndex)
+                self.playWithSelectedHandCard(handCard: card)
             default: break
             }
         }
@@ -220,9 +212,9 @@ extension GameScene {
         if player.baseScore > 2 && player.baseScore > player.lastGoScore {
             // 막장이었으면 고/스톱 선택없이 바로 결과 출력
             if player.handCards.isEmpty {
-                UserDefaults.standard.lastWinnerIndex = player.index
                 self.showWinnerPopup(winnerIndex: self.gameData.currentPlayerIndex, wasNagari: UserDefaults.standard.wasNagari ?? false)
-                UserDefaults.standard.wasNagari = false
+                self.gameData.winnerIndex = self.gameData.currentPlayerIndex
+                self.saveGameData(winnerIndex: player.index, wasNagari: false)
             }
             // User
             else if player.index == 0 {
@@ -232,9 +224,9 @@ extension GameScene {
             }
             // Ai
             else {
-                let isGo = self.ai.selectGoOrStop(
-                    aiPlayerIndex: player.index,
-                    tableCards: self.allTableCards()
+                let isGo = self.aiManager.selectGoOrStop(
+                    gameData: self.gameData,
+                    playerIndex: player.index
                 )
                 self.afterSelectGoOrStop(isGo: isGo, player: player)
             }
@@ -242,8 +234,8 @@ extension GameScene {
         // 전체 사용자 막장이었으면 나가리>> 다음판 두배
         else if self.gameData.players[0].handCards.isEmpty && self.gameData.players[1].handCards.isEmpty && self.gameData.players[2].handCards.isEmpty {
             PopupManager.shared.showPopup(popupData: self.popupData, type: .nagari, cards: [], players: []) { _ in
-                UserDefaults.standard.wasNagari = true
-                self.newGame()
+                self.saveGameData(winnerIndex: nil, wasNagari: true)
+                self.startGame()
             }
         }
         else {
@@ -252,19 +244,25 @@ extension GameScene {
         }
     }
     
-    private func aiTurn() {
-        let playerIndex = self.gameData.currentPlayerIndex
-        let handCards = self.gameData.players[playerIndex].handCards
-        guard !handCards.isEmpty else { return }
-        let card = self.ai.selectHandCard(
-            aiPlayerIndex: playerIndex,
-            tableCards: self.allTableCards()
-        )
-        self.playWithSelectedHandCard(handCard: card)
-    }
     
-    private func allTableCards() -> [Card] {
-        self.tableCardGroups.flatMap { $0 }
+    private func saveGameData(winnerIndex: Int?, wasNagari: Bool) {
+        if let winnerIndex {
+            var winnerHistory: [Int] = UserDefaults.standard.winnerHistory ?? []
+            winnerHistory.append(winnerIndex)
+            UserDefaults.standard.winnerHistory = winnerHistory.suffix(100)
+        }
+        
+        UserDefaults.standard.wasNagari = wasNagari
+        
+        if let encodedData = try? JSONEncoder().encode(self.gameData.players[0]) {
+            UserDefaults.standard.user = encodedData
+        }
+        if let encodedData = try? JSONEncoder().encode(self.gameData.players[1]) {
+            UserDefaults.standard.player1 = encodedData
+        }
+        if let encodedData = try? JSONEncoder().encode(self.gameData.players[2]) {
+            UserDefaults.standard.player2 = encodedData
+        }
     }
     
     // 총통 검사 2 (10점)
@@ -274,8 +272,6 @@ extension GameScene {
                 let sameMonthCards = player.handCards.filter({$0.month == handCard.month})
                 
                 if player.handCards.count == 7 && sameMonthCards.count == 4 {
-                    UserDefaults.standard.lastWinnerIndex = self.gameData.currentPlayerIndex
-                    UserDefaults.standard.wasNagari = false
                     self.showChongTongWinPopup(winnerIndex: i, cards: sameMonthCards) {
                         self.collectMoney(winnerIndex: player.index, loserIndex: (player.index + 1) % 3, money: 10){
                             self.collectMoney(winnerIndex: player.index, loserIndex: (player.index + 2) % 3, money: 10){
@@ -283,6 +279,8 @@ extension GameScene {
                             }
                         }
                     }
+                    self.gameData.winnerIndex = player.index
+                    self.saveGameData(winnerIndex: player.index, wasNagari: false)
                     return true
                 }
             }
@@ -312,8 +310,8 @@ extension GameScene {
             
             // 다음 덱카드를 미리 확인하여 연속된 보너스 카드 갯수 가져오기
             var nextBonusDeckCardCount = 0
-            var nextDeckCardExceptBonus: Card = self.deckCards.last!
-            for card in (self.deckCards).reversed() {
+            var nextDeckCardExceptBonus: Card = self.gameData.deckCards.last!
+            for card in (self.gameData.deckCards).reversed() {
                 if card.month == 0 {
                     nextBonusDeckCardCount += 1
                 }
@@ -342,7 +340,7 @@ extension GameScene {
                     }
                     // ai
                     else {
-                        let isWave = self.ai.selectWave(aiPlayerIndex: player.index, cards: sameMonthPlayerHandCards)
+                        let isWave = self.aiManager.selectWave(gameData: self.gameData, playerIndex: player.index, cards: sameMonthPlayerHandCards)
                         self.afterWave(isWave: isWave, player: player, handCard: handCard, sameMonthPlayerHandCards: sameMonthPlayerHandCards, nextDeckCardExceptBonus: nextDeckCardExceptBonus)
                     }
                 }
@@ -410,18 +408,16 @@ extension GameScene {
                                 self.gameData.players[goBakPlayerIndex].isGokbak = true
                                 self.collectMoney(winnerIndex: player.index, loserIndex: goBakPlayerIndex, money: 6) {
                                     self.gameData.winnerIndex = player.index
-                                    UserDefaults.standard.lastWinnerIndex = player.index
-                                    UserDefaults.standard.wasNagari = false
-                                    self.newGame()
+                                    self.saveGameData(winnerIndex: player.index, wasNagari: false)
+                                    self.startGame()
                                 }
                             }
                             else {
                                 self.collectMoney(winnerIndex: player.index, loserIndex: (player.index + 1) % 3 ,money: 3) {
                                     self.collectMoney(winnerIndex: player.index, loserIndex: (player.index + 2) % 3 ,money: 3) {
                                         self.gameData.winnerIndex = player.index
-                                        UserDefaults.standard.lastWinnerIndex = player.index
-                                        UserDefaults.standard.wasNagari = false
-                                        self.newGame()
+                                        self.saveGameData(winnerIndex: player.index, wasNagari: false)
+                                        self.startGame()
                                     }
                                 }
                             }
@@ -499,8 +495,8 @@ extension GameScene {
                     }
                     // ai
                     else {
-                        let tableCard = self.ai.selectCard(
-                            aiPlayerIndex: player.index,
+                        let tableCard = self.aiManager.selectCard(gameData: self.gameData,
+                            playerIndex: player.index,
                             deckOrHandCard: handCard,
                             tableCards: matchingTableCards
                         )
@@ -540,7 +536,7 @@ extension GameScene {
     // 덱카드 뒤집기 (보너스카드 이후)
     private func flipDeckCardAfterBonusCard(kissHandCard: Card? = nil) async {
         let player = self.gameData.players[self.gameData.currentPlayerIndex]
-        guard let deckCard = self.deckCards.last else { return }
+        guard let deckCard = self.gameData.deckCards.last else { return }
         
         Task {
             // 매칭카드가 갯수에 따른 처리
@@ -622,7 +618,7 @@ extension GameScene {
                         })
                     }
                     else {
-                        let selectCard = self.ai.selectCard(aiPlayerIndex: self.gameData.currentPlayerIndex, deckOrHandCard: deckCard, tableCards: matchingTableCards)
+                        let selectCard = self.aiManager.selectCard(gameData: self.gameData, playerIndex: self.gameData.currentPlayerIndex, deckOrHandCard: deckCard, tableCards: matchingTableCards)
                         Task {
                             await self.moveMatchingCardsToPlayerCaptured(playerIndex: player.index, deckOrHandCards: [deckCard], tableCards: [selectCard]){
                                 self.checkScoreAndDoNextPlay()
@@ -672,9 +668,9 @@ extension GameScene {
         }
         else {
             PopupManager.shared.showPopup(popupData: self.popupData, type: .stop, cards: [], players: [player]) { _ in
-                UserDefaults.standard.lastWinnerIndex = player.index
                 self.showWinnerPopup(winnerIndex: self.gameData.currentPlayerIndex, wasNagari: UserDefaults.standard.wasNagari ?? false)
-                UserDefaults.standard.wasNagari = false
+                self.gameData.winnerIndex = player.index
+                self.saveGameData(winnerIndex: player.index, wasNagari: false)
             }
         }
     }
@@ -792,7 +788,6 @@ extension GameScene {
     }
     
     private func showWinnerPopup(winnerIndex: Int, wasNagari: Bool) {
-        self.gameData.winnerIndex = winnerIndex
         let goBakPlayerIndex = self.getGoBakPlayerIndex(winnerIndex: winnerIndex)
         let players = ScoreEngine().getPlayersFinalScore(winnerIndex: winnerIndex, gameData: self.gameData, wasNagari: wasNagari, goBakPlayerIndex: goBakPlayerIndex)
         let winner = players[0]
@@ -802,13 +797,13 @@ extension GameScene {
         PopupManager.shared.showPopup(popupData: self.popupData, type: .winner, cards: [], players: players, completion: { select in
             if let goBakPlayerIndex {
                 self.collectMoney(winnerIndex: winnerIndex, loserIndex: goBakPlayerIndex, money: winner.finalScore){
-                    self.newGame()
+                    self.startGame()
                 }
             }
             else {
                 self.collectMoney(winnerIndex: winnerIndex, loserIndex: loser1.index, money: loser1.finalScore){
                     self.collectMoney(winnerIndex: winnerIndex, loserIndex: loser2.index, money: loser2.finalScore){
-                        self.newGame()
+                        self.startGame()
                     }
                 }
             }
@@ -828,7 +823,7 @@ extension GameScene {
     }
     
     private func isEmptyTable() -> Bool {
-        for tableCardGroup in self.tableCardGroups {
+        for tableCardGroup in self.gameData.tableCardGroups {
             if tableCardGroup.count > 0 { return false }
         }
         return true
@@ -836,7 +831,7 @@ extension GameScene {
     
     // Test : 한사람에게 카드 몰빵
     private func moveDeckCardToPlayerCaptured(playerIndex: Int) async {
-        let deckCard = self.deckCards.removeLast()
+        let deckCard = self.gameData.deckCards.removeLast()
         self.moveCardToPlayerCaptured(playerIndex: playerIndex, card: deckCard)
         
         do { try await Task.sleep(for: .seconds(self.gameData.cardDuration))
@@ -862,17 +857,17 @@ extension GameScene {
         print("\(#function) card: \(card.month), \(card.type)")
         guard let cardNode = childNode(withName: card.id.uuidString) as? CardNode else { return }
         cardNode.removeStroke()
-        let cardIndexByGroup = self.tableCardGroups[tableCardGroupIndex].count
+        let cardIndexByGroup = self.gameData.tableCardGroups[tableCardGroupIndex].count
         let zPosition = self.getTableCardZPosition(groupIndex: tableCardGroupIndex, cardIndexByGroup: cardIndexByGroup)
         let movePosition = self.getTableCardPosition(groupIndex: tableCardGroupIndex, cardIndexByGroup: cardIndexByGroup)
-        self.tableCardGroups[tableCardGroupIndex].append(card)
+        self.gameData.tableCardGroups[tableCardGroupIndex].append(card)
         cardNode.moveAndTurnCard(movePosition: movePosition, duration: self.gameData.cardDuration, isFront: true, zPosition: Int(zPosition),afterCardNodeScale: .large)
     }
     
     private func moveDeckCardToTable(count: Int = 1) async {
         for _ in 0..<count {
-            if self.deckCards.count == 0 { return }
-            let deckCard = self.deckCards.removeLast()
+            if self.gameData.deckCards.count == 0 { return }
+            let deckCard = self.gameData.deckCards.removeLast()
             print("\(#function) deckCard: \(deckCard.month), \(deckCard.type)")
             let tableCardGroupIndex = self.getTableCardGroupIndex(cardMonth: deckCard.month) ?? self.getEmptyTableCardGroupIndex(cardMonth: deckCard.month)
             self.moveCardToTable(card: deckCard, tableCardGroupIndex: tableCardGroupIndex)
@@ -916,7 +911,7 @@ extension GameScene {
         guard let matchingTableCardNode = childNode(withName: tableCards.last!.id.uuidString) as? CardNode else { return }
         
         let groupIndex = self.getTableCardGroupIndex(cardMonth: deckCard.month) ?? self.getEmptyTableCardGroupIndex(cardMonth: deckCard.month)
-        let cardIndexByGroup = self.tableCardGroups[groupIndex].count
+        let cardIndexByGroup = self.gameData.tableCardGroups[groupIndex].count
         let zPosition = self.getTableCardZPosition(groupIndex: groupIndex, cardIndexByGroup: cardIndexByGroup)
         
         print("tablecarscount:\(tableCards.count), groupIndex = \(groupIndex), cardIndexByGroup = \(cardIndexByGroup), zposition =\(zPosition)")
@@ -935,7 +930,7 @@ extension GameScene {
             guard let matchingTableCardNode = childNode(withName: tableCards.last!.id.uuidString) as? CardNode else { return }
             
             let groupIndex = self.getTableCardGroupIndex(cardMonth: handCard.month) ?? self.getEmptyTableCardGroupIndex(cardMonth: handCard.month)
-            let cardIndexByGroup = self.tableCardGroups[groupIndex].count + (i + 1)
+            let cardIndexByGroup = self.gameData.tableCardGroups[groupIndex].count + (i + 1)
             let zPosition = self.getTableCardZPosition(groupIndex: groupIndex, cardIndexByGroup: cardIndexByGroup)
             
             var matchPosition = matchingTableCardNode.position
@@ -956,7 +951,7 @@ extension GameScene {
         
         for deckOrHandCard in deckOrHandCards {
             self.gameData.players[playerIndex].handCards.removeAll { $0.id == deckOrHandCard.id }
-            self.deckCards.removeAll { $0.id == deckOrHandCard.id }
+            self.gameData.deckCards.removeAll { $0.id == deckOrHandCard.id }
             
             // 국진 위치
             if self.isGukjinCard(card: deckOrHandCard) {
@@ -977,7 +972,7 @@ extension GameScene {
             // ai
             else {
                 //  쌍피 선택
-                let isDoublePi = self.ai.selectGukjin(aiPlayerIndex: playerIndex, card: gukjinCard)
+                let isDoublePi = self.aiManager.selectGukjin(gameData: self.gameData, playerIndex: playerIndex)
                 self.afterSelectGukjin(isDoublePi: isDoublePi, playerIndex: playerIndex, card: gukjinCard, tableCardGroupIndex: tableCardGroupIndex, completion: completion)
             }
         }
@@ -1025,7 +1020,7 @@ extension GameScene {
             // ai
             else {
                 //  쌍피 선택
-                if self.ai.selectGukjin(aiPlayerIndex: playerIndex, card: gukjinCard) {
+                if self.aiManager.selectGukjin(gameData: self.gameData, playerIndex: playerIndex) {
                     self.moveCardToPlayerCaptured(playerIndex: playerIndex, card: gukjinCard, forcedType: .pi)
                     self.sortTableCardGroup(tableCardGroupIndex: tableCardGroupIndex)
                 }
@@ -1060,7 +1055,7 @@ extension GameScene {
     
     // 테이블 바닥카드 가져갈때 해당 그룹 정렬
     private func sortTableCardGroup(tableCardGroupIndex: Int) {
-        for (i, card) in tableCardGroups[tableCardGroupIndex].enumerated() {
+        for (i, card) in self.gameData.tableCardGroups[tableCardGroupIndex].enumerated() {
             guard let cardNode = childNode(withName: card.id.uuidString) as? CardNode else { continue }
             let zPosition = self.getTableCardZPosition(groupIndex: tableCardGroupIndex, cardIndexByGroup: i)
             let movePosition = self.getTableCardPosition(groupIndex: tableCardGroupIndex, cardIndexByGroup: i)
@@ -1070,8 +1065,8 @@ extension GameScene {
     
     private func moveDeckCardToPlayerHand(playerIndex: Int, count: Int = 1) async {
         for _ in 0..<count {
-            guard let deckCardNode = childNode(withName: deckCards.last?.id.uuidString ?? "") as? CardNode else { return }
-            let lastDeckCard = self.deckCards.removeLast()
+            guard let deckCardNode = childNode(withName: self.gameData.deckCards.last?.id.uuidString ?? "") as? CardNode else { return }
+            let lastDeckCard = self.gameData.deckCards.removeLast()
             let cardIndex = self.gameData.players[playerIndex].handCards.count
             let movePosition = self.getPlayerHandCardPosition(playerIndex: playerIndex, cardIndex: cardIndex)
             self.gameData.players[playerIndex].handCards.append(lastDeckCard)
@@ -1153,9 +1148,9 @@ extension GameScene {
     private func moveBonusTableCardToPlayerCapturedAndMoveDeckCardToTableAgain(playerIndex: Int) async  {
         var bounsCardCount = 0
         
-        for i in (0..<self.tableCardGroups.count).reversed() {
-            for j in (0..<self.tableCardGroups[i].count).reversed() {
-                let tableCard = self.tableCardGroups[i][j]
+        for i in (0..<self.gameData.tableCardGroups.count).reversed() {
+            for j in (0..<self.gameData.tableCardGroups[i].count).reversed() {
+                let tableCard = self.gameData.tableCardGroups[i][j]
                 if tableCard.month == 0 {
                     // table에서 제거하고 winner에게 지급
                     let tableCardGroupIndex = self.getTableCardGroupIndex(cardMonth: tableCard.month) ?? self.getEmptyTableCardGroupIndex(cardMonth: tableCard.month)
@@ -1182,12 +1177,12 @@ extension GameScene {
 
     // 보너스 카드가 연속인 경우 처리, 보너스 카드가 아닌경우
     private func moveBonusDeckCardsToPlayerCapturedIfNeeded(playerIndex: Int, completion: @escaping () -> Void) async  {
-        guard let deckCard = self.deckCards.last else { return }
+        guard let deckCard = self.gameData.deckCards.last else { return }
         if deckCard.month == 0 {
             PopupManager.shared.showPopup(popupData: self.popupData, type: .deckBonus, cards: [deckCard], players: [self.gameData.players[playerIndex]]) { _ in
                 Task {
                     // table에서 제거하고 winner에게 지급
-                    self.deckCards.removeLast()
+                    self.gameData.deckCards.removeLast()
                     self.moveCardToPlayerCaptured(playerIndex: playerIndex, card: deckCard)
                     
                     do { try await Task.sleep(for: .seconds(self.self.gameData.cardDuration))
@@ -1245,9 +1240,9 @@ extension GameScene {
     }
     
     private func moveBonusDeckCardsToTable(tableCardGroupIndex: Int) async  {
-        if self.deckCards.last?.month == 0 {
+        if self.gameData.deckCards.last?.month == 0 {
             // table에서 제거하고 winner에게 지급
-            let deckCard = self.deckCards.removeLast()
+            let deckCard = self.gameData.deckCards.removeLast()
             self.moveCardToTable(card: deckCard, tableCardGroupIndex: tableCardGroupIndex)
             
             do { try await Task.sleep(for: .seconds(self.gameData.cardDuration))
@@ -1264,7 +1259,7 @@ extension GameScene {
     
     // 존재하는 테이블 그룹 찾기 (없으면 nil)
     private func getTableCardGroupIndex(cardMonth: Int) -> Int? {
-        for (i, tableCardGroup) in tableCardGroups.enumerated() {
+        for (i, tableCardGroup) in self.gameData.tableCardGroups.enumerated() {
             if let card  = tableCardGroup.first {
                 if card.month == cardMonth {
                     return i
@@ -1276,7 +1271,7 @@ extension GameScene {
     
     // 비어있는 테이블 그룹 반환 (getTableCardGroupIndex이 없으면 )
     private func getEmptyTableCardGroupIndex(cardMonth: Int) -> Int {
-        for (i, tableCardGroup) in tableCardGroups.enumerated() {
+        for (i, tableCardGroup) in self.gameData.tableCardGroups.enumerated() {
             if tableCardGroup.isEmpty {
                 return i
             }
@@ -1286,7 +1281,7 @@ extension GameScene {
     
     private func getMatchingTableCards(cardMonth: Int) -> [Card] {
         var cards: [Card] = []
-        for tableCardGroup in tableCardGroups {
+        for tableCardGroup in self.gameData.tableCardGroups {
             // 첫번째 카드로만 같은 그룹인지 확인 후 보너스카드까지 가져가야 함
             if tableCardGroup.first?.month == cardMonth {
                 for card in tableCardGroup {
@@ -1298,16 +1293,14 @@ extension GameScene {
     }
     
     private func removeTableCard(card: Card) {
-        for i in 0..<self.tableCardGroups.count {
-            self.tableCardGroups[i].removeAll { $0.id == card.id }
+        for i in 0..<self.gameData.tableCardGroups.count {
+            self.gameData.tableCardGroups[i].removeAll { $0.id == card.id }
         }
     }
 
-    private func setDeckCards() {
+    private func setDeckCardNodes(deckCards: [Card]) {
         let startX = round(size.width / 2)
         let startY = round(size.height / 2) - cardGap * 5
-        
-        self.deckCards = self.gameData.deckCards
         
         for i in 0 ..< deckCards.count {
             let node = CardNode(name: deckCards[i].id.uuidString, card: deckCards[i], cardSize: self.normalCardSize, isFront: false)
@@ -1344,13 +1337,13 @@ extension GameScene {
             startPosition.x = self.size.width / 2 + (cardWidth / 2)
             startPosition.y = self.normalCardSize.height * CardNodeScale.large.rawValue / 2 + self.cardGap
         }
-        else if let playerNameNode = self.childNode(withName: CapsuledLabelNode.prefixPlayerName + "\(playerIndex)") as? SKLabelNode {
-            cardWidth = self.normalCardSize.width * CardNodeScale.small.rawValue + self.cardGap
-            startPosition.x = playerNameNode.position.x + (playerNameNode.bounds.size.width / 2) + cardWidth + self.cardGap
-            startPosition.y = self.size.height - (self.normalCardSize.height * CardNodeScale.small.rawValue / 2) - self.cardGap
+        else if let playerMoneyNode = self.childNode(withName: CapsuledLabelNode.prefixPlayerMoney + "\(playerIndex)") as? SKLabelNode {
+            cardWidth = self.normalCardSize.width * CardNodeScale.small.rawValue
+            startPosition.x = playerMoneyNode.position.x + (playerMoneyNode.bounds.size.width / 2) + cardWidth + 5
+            startPosition.y = self.size.height - (self.normalCardSize.height * CardNodeScale.small.rawValue / 2) - 7
         }
         else {
-            print("\(#function) empty childNode: \(CapsuledLabelNode.prefixPlayerName)\(playerIndex)")
+            print("\(#function) empty childNode: \(CapsuledLabelNode.prefixPlayerMoney)\(playerIndex)")
         }
 
         var position: CGPoint = .zero
@@ -1402,11 +1395,9 @@ extension GameScene {
         }
     }
     
-    private func updatePlayers() {
+    private func updateAllPlayerNodesAndStatus(isClear: Bool) {
         for i in 0...2 {
-            guard let playerNameNode = self.childNode(withName: CapsuledLabelNode.prefixPlayerName + "\(i)") else { return }
-            guard let playerIconNode = self.childNode(withName: PlayerIconNode.prefixName + "\(i)") else { return }
-            self.removeChildren(in: [playerNameNode, playerIconNode])
+            if isClear { self.clearPlayerGameStatus(i) }
             self.setPlayerNodes(player: self.gameData.players[i], isBlink: i == self.gameData.currentPlayerIndex)
         }
     }
@@ -1415,10 +1406,13 @@ extension GameScene {
         var startPosition: CGPoint = .zero
         let playerIconNodeSize = CGSize(width: self.playerIconDiameter * (isBlink ? 1.5 : 1),  height: self.playerIconDiameter * (isBlink ? 1.5 : 1))
         let playerIconNode = PlayerIconNode(player: player, size: playerIconNodeSize, isBlink: isBlink)
-        let playerNameNode = CapsuledLabelNode(player: player)
+        let playerNameNode = CapsuledLabelNode(playerIndex: player.index, playerName: player.name)
+        let playerMoneyNode = CapsuledLabelNode(playerIndex: player.index, money: player.money)
         // remove old node
         if let oldOne = self.childNode(withName: PlayerIconNode.prefixName + "\(player.index)") { oldOne.removeFromParent() }
         if let oldOne = self.childNode(withName: CapsuledLabelNode.prefixPlayerName + "\(player.index)") { oldOne.removeFromParent() }
+        if let oldOne = self.childNode(withName: CapsuledLabelNode.prefixPlayerWinningCount + "\(player.index)") { oldOne.removeFromParent() }
+        if let oldOne = self.childNode(withName: CapsuledLabelNode.prefixPlayerMoney + "\(player.index)") { oldOne.removeFromParent() }
         
         switch player.index {
         case 1:
@@ -1446,8 +1440,23 @@ extension GameScene {
             playerNameNode.position.y = startPosition.y - self.normalCardSize.height / 2
         }
         
+        playerMoneyNode.position.y = playerNameNode.position.y
+        playerMoneyNode.position.x = playerNameNode.position.x + playerNameNode.frame.width / 2 + playerMoneyNode.frame.width / 2 + 20
+        
+        if let winnerHistory = UserDefaults.standard.winnerHistory, winnerHistory.last == player.index {
+            let winningCount = winnerHistory.reversed().prefix(while: { $0 == player.index }).count
+            let playerWinningCountNode = CapsuledLabelNode(playerIndex: player.index, winningCount: winningCount)
+            playerWinningCountNode.position.y = playerNameNode.position.y
+            playerWinningCountNode.position.x = playerNameNode.position.x + playerNameNode.frame.width / 2 + playerWinningCountNode.frame.width / 2 + 20
+            self.addChild(playerWinningCountNode)
+            // moeny 위치 변경
+            playerMoneyNode.position.x = playerWinningCountNode.position.x + playerWinningCountNode.frame.width / 2 + playerMoneyNode.frame.width / 2 + 20
+        }
+        
+        
         self.addChild(playerIconNode)
         self.addChild(playerNameNode)
+        self.addChild(playerMoneyNode)
     }
     
     private func setPlayerScoreNodes(playerIndex: Int) {
@@ -1469,7 +1478,7 @@ extension GameScene {
             case 3: score = player.piCount
             default: break
             }
-            let capturedCountNode = CapsuledLabelNode(player: player, groupIndex: i, score: score)
+            let capturedCountNode = CapsuledLabelNode(playerIndex: player.index, groupIndex: i, score: score)
             position.x += capturedCountNode.frame.width
             position.y -= capturedCountNode.frame.height + 3
             capturedCountNode.position = position

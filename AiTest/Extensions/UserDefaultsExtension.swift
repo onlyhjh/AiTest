@@ -8,23 +8,25 @@
 import Foundation
 
 enum UserDefaultKey: String, CaseIterable {
-    case savedDeckCards
-    case savedWinnerIndex
+    case savedGameDeckCards
+    case savedGameWinnerIndex
     case user
-    case lastWinnerIndex
+    case player1
+    case player2
+    case winnerHistory
     case wasNagari
     case gameSpeed
 }
 
 extension UserDefaults {
-    var savedDeckCards: Data? {
-        get { data(forKey: UserDefaultKey.savedDeckCards.rawValue) }
-        set { setValue(newValue, forKey: UserDefaultKey.savedDeckCards.rawValue)}
+    var savedGameDeckCards: Data? {
+        get { data(forKey: UserDefaultKey.savedGameDeckCards.rawValue) }
+        set { setValue(newValue, forKey: UserDefaultKey.savedGameDeckCards.rawValue)}
     }
     
-    var savedWinnerIndex: Int? {
-        get { value(forKey: UserDefaultKey.savedWinnerIndex.rawValue) as? Int }
-        set { setValue(newValue, forKey: UserDefaultKey.savedWinnerIndex.rawValue)}
+    var savedGameWinnerIndex: Int? {
+        get { value(forKey: UserDefaultKey.savedGameWinnerIndex.rawValue) as? Int }
+        set { setValue(newValue, forKey: UserDefaultKey.savedGameWinnerIndex.rawValue)}
     }
     
     var user: Data? {
@@ -32,9 +34,19 @@ extension UserDefaults {
         set { setValue(newValue, forKey: UserDefaultKey.user.rawValue)}
     }
     
-    var lastWinnerIndex: Int? {
-        get { value(forKey: UserDefaultKey.lastWinnerIndex.rawValue) as? Int }
-        set { setValue(newValue, forKey: UserDefaultKey.lastWinnerIndex.rawValue)}
+    var player1: Data? {
+        get { data(forKey: UserDefaultKey.player1.rawValue) }
+        set { setValue(newValue, forKey: UserDefaultKey.player1.rawValue)}
+    }
+    
+    var player2: Data? {
+        get { data(forKey: UserDefaultKey.player2.rawValue) }
+        set { setValue(newValue, forKey: UserDefaultKey.player2.rawValue)}
+    }
+    
+    var winnerHistory: [Int]? {
+        get { value(forKey: UserDefaultKey.winnerHistory.rawValue) as? [Int]}
+        set { setValue(newValue, forKey: UserDefaultKey.winnerHistory.rawValue)}
     }
     
     var wasNagari: Bool? {

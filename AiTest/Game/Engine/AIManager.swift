@@ -5,59 +5,52 @@
 //  Created by Joey's Mac mini on 6/25/26.
 //
 
-class AIEngineManager {
+class AIEngineManager: AIEngine {
     private let cursorAI = CursorAIEngine()
     private let claudeAI = ClaudeAIEngine()
     
-    func setGameData(_ gameData: GameData) {
-        cursorAI.gameData = gameData
-        claudeAI.gameData = gameData
-    }
-    
-    func selectCard(aiPlayerIndex: Int, deckOrHandCard: Card, tableCards: [Card]) -> Card {
-        if aiPlayerIndex == 1 {
-            return cursorAI.selectHandCard(aiPlayerIndex: aiPlayerIndex, tableCards: tableCards)
+    func selectCard(gameData: GameData, playerIndex: Int, deckOrHandCard: Card, tableCards: [Card]) -> Card {
+        if playerIndex == 1 {
+            return cursorAI.selectCard(gameData: gameData, playerIndex: playerIndex, deckOrHandCard: deckOrHandCard, tableCards: tableCards)
         }
         else {
-            return claudeAI.selectHandCard(aiPlayerIndex: aiPlayerIndex, tableCards: tableCards)
+            return claudeAI.selectCard(gameData: gameData, playerIndex: playerIndex, deckOrHandCard: deckOrHandCard, tableCards: tableCards)
         }
     }
     
-    func selectGukjin(aiPlayerIndex: Int, card: Card) -> Bool {
-        if aiPlayerIndex == 1 {
-            return cursorAI.selectGukjin(aiPlayerIndex: aiPlayerIndex, card: card)
+    func selectGukjin(gameData: GameData, playerIndex: Int) -> Bool {
+        if playerIndex == 1 {
+            return cursorAI.selectGukjin(gameData: gameData, playerIndex: playerIndex)
         }
         else {
-            return claudeAI.selectGukjin(aiPlayerIndex: aiPlayerIndex, card: card)
+            return claudeAI.selectGukjin(gameData: gameData, playerIndex: playerIndex)
         }
     }
     
-    func selectWave(aiPlayerIndex: Int, cards: [Card]) -> Bool {
-        if aiPlayerIndex == 1 {
-            return cursorAI.selectWave(aiPlayerIndex: aiPlayerIndex, cards: cards)
+    func selectWave(gameData: GameData, playerIndex: Int, cards: [Card]) -> Bool {
+        if playerIndex == 1 {
+            return cursorAI.selectWave(gameData: gameData, playerIndex: playerIndex, cards: cards)
         }
         else {
-            return claudeAI.selectWave(aiPlayerIndex: aiPlayerIndex, cards: cards)
+            return claudeAI.selectWave(gameData: gameData, playerIndex: playerIndex, cards: cards)
         }
     }
     
-    func selectHandCard(aiPlayerIndex: Int, tableCards: [Card]) -> Card {
-        if aiPlayerIndex == 1 {
-            return cursorAI.selectHandCard(aiPlayerIndex: aiPlayerIndex, tableCards: tableCards)
+    func selectHandCard(gameData: GameData, playerIndex: Int) -> Card {
+        if playerIndex == 1 {
+            return cursorAI.selectHandCard(gameData: gameData,  playerIndex: playerIndex)
         }
         else {
-            return claudeAI.selectHandCard(aiPlayerIndex: aiPlayerIndex, tableCards: tableCards)
+            return claudeAI.selectHandCard(gameData: gameData, playerIndex: playerIndex)
         }
     }
     
-    func selectGoOrStop(aiPlayerIndex: Int, tableCards: [Card]) -> Bool {
-        if aiPlayerIndex == 1 {
-            return cursorAI.selectGoOrStop(aiPlayerIndex: aiPlayerIndex, tableCards: tableCards)
+    func selectGoOrStop(gameData: GameData, playerIndex: Int) -> Bool {
+        if playerIndex == 1 {
+            return cursorAI.selectGoOrStop(gameData: gameData, playerIndex: playerIndex)
         }
         else {
-            return claudeAI.selectGoOrStop(aiPlayerIndex: aiPlayerIndex, tableCards: tableCards)
+            return claudeAI.selectGoOrStop(gameData: gameData, playerIndex: playerIndex)
         }
     }
-    
-    
 }

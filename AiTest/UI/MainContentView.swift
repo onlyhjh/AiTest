@@ -41,6 +41,7 @@ struct MainContentView: View {
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                         if scene == nil {
+                            UserDefaults.standard.wasNagari
                             let newScene = GameScene(size: geometry.size, gameData: self.gameData, popupData: self.popupData, isPresentedCharacterSettingPopup: $isPresentedCharacterSettingPopup)
                             newScene.scaleMode = .aspectFit
                             scene = newScene
@@ -67,7 +68,6 @@ struct MainContentView: View {
                     .font(.largeTitle)
                     Spacer()
                     Button("start") {
-                        self.gameData.deckCards = DeckFactory().generateFullDeck()
                         self.gameData.gameStatus = .start
                         self.isStarted = true
                     }
@@ -76,9 +76,9 @@ struct MainContentView: View {
                     .background(.green)
                     .clipShape(Capsule())
                     Button("save") {
-                        if !self.gameData.deckCards.isEmpty, let encoded = try? JSONEncoder().encode(self.gameData.deckCards) {
-                            UserDefaults.standard.savedDeckCards = encoded
-                            UserDefaults.standard.savedWinnerIndex = self.gameData.winnerIndex
+                        if !self.gameData.origianalDeckCards.isEmpty, let encoded = try? JSONEncoder().encode(self.gameData.origianalDeckCards) {
+                            UserDefaults.standard.savedGameDeckCards = encoded
+                            UserDefaults.standard.savedGameWinnerIndex = self.gameData.winnerIndex
                             self.alertMessage = "save success"
                             self.isPresentedAlert = true
                         }
@@ -89,11 +89,10 @@ struct MainContentView: View {
                     .clipShape(Capsule())
 
                     Button("load") {
-                        if let data = UserDefaults.standard.savedDeckCards, let deckCards = try? JSONDecoder().decode([Card].self, from: data) {
-                            self.gameData.deckCards = deckCards
-                            UserDefaults.standard.lastWinnerIndex = UserDefaults.standard.savedWinnerIndex ?? 0
-                            self.gameData.winnerIndex = UserDefaults.standard.savedWinnerIndex ?? 0
-                            self.gameData.gameStatus = .start
+                        if let data = UserDefaults.standard.savedGameDeckCards, let deckCards = try? JSONDecoder().decode([Card].self, from: data) {
+                            self.gameData.origianalDeckCards = deckCards
+                            self.gameData.winnerIndex = UserDefaults.standard.savedGameWinnerIndex ?? 0
+                            self.gameData.gameStatus = .restart
                             self.isStarted = true
                         }
                     }
@@ -107,13 +106,15 @@ struct MainContentView: View {
             .ignoresSafeArea(.all)
         }
         .onAppear {
-            if let encodedData = UserDefaults.standard.user, let user = try? JSONDecoder().decode(Player.self, from: encodedData) {
+            let playerFactory = PlayerFactory()
+            if let user = playerFactory.loadPlayer(playerIndex: 0) {
                 self.gameData.players[0] = user
-                self.gameData.players[1] = PlayerFactory().getRandomPlayer(playerIndex: 1, without: [user.characterIndex])
-                self.gameData.players[2] = PlayerFactory().getRandomPlayer(playerIndex: 2, without: [user.characterIndex, self.gameData.players[1].characterIndex])
+                print("??? user moeny: \(user.money)")
+                self.gameData.players[1] = playerFactory.loadPlayer(playerIndex: 1) ?? playerFactory.getRandomPlayer(playerIndex: 1, without: [user.characterIndex])
+                self.gameData.players[2] = playerFactory.loadPlayer(playerIndex: 2) ?? playerFactory.getRandomPlayer(playerIndex: 2, without: [user.characterIndex, self.gameData.players[1].characterIndex])
             }
             else {
-                self.gameData.players = PlayerFactory().getRandomPlayers()
+                self.gameData.players = playerFactory.getRandomPlayers()
                 self.isPresentedCharacterSettingPopup = true
             }
         }

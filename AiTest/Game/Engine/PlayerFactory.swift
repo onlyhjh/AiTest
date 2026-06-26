@@ -8,6 +8,21 @@
 import Foundation
 
 class PlayerFactory {
+    func loadPlayer(playerIndex: Int) -> Player? {
+        var playerData: Data?
+        switch playerIndex {
+        case 1: playerData = UserDefaults.standard.player1
+        case 2: playerData = UserDefaults.standard.player2
+        default : playerData = UserDefaults.standard.user
+        }
+        
+        if let playerData, let player = try? JSONDecoder().decode(Player.self, from: playerData) {
+            return player
+        }
+        
+        return nil
+    }
+    
     func getRandomPlayers() -> [Player] {
         let random = (0...20).shuffled()
         var players: [Player] = []

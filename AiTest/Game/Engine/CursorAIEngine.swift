@@ -9,23 +9,16 @@ import Foundation
 
 /// 고스톱 AI — 점수·족보·상대 견제를 반영한 휴리스틱 엔진
 final class CursorAIEngine: AIEngine {
-    var gameData: GameData!
-
-    func setGameData(_ gameData: GameData) {
-        self.gameData = gameData
-    }
-    
-    // MARK: - Public decisions
 
     /// true = 고, false = 스톱
-    func selectGoOrStop(aiPlayerIndex: Int, tableCards: [Card] = []) -> Bool {
-        let player = gameData.players[aiPlayerIndex]
-        let opponents = opponentPlayers(excluding: aiPlayerIndex)
+    func selectGoOrStop(gameData: GameData, playerIndex: Int) -> Bool {
+        let player = gameData.players[playerIndex]
+        let opponents = opponentPlayers(gameData: gameData, excluding: playerIndex)
         let myScore = player.baseScore
         let maxOpponentScore = opponents.map(\.baseScore).max() ?? 0
         let scoreGain = myScore - player.lastGoScore
         let deckRemaining = gameData.deckCards.count
-        let upside = handUpside(for: player, tableCards: tableCards)
+        let upside = handUpside(gameData: gameData, for: player, tableCards: gameData.allTableCards)
 
         // 막장이면 무조건 스톱
         if player.handCards.isEmpty {
@@ -75,21 +68,21 @@ final class CursorAIEngine: AIEngine {
     }
 
     /// 매칭 테이블 카드 2장 중 가져갈 카드 선택
-    func selectCard(aiPlayerIndex: Int, deckOrHandCard: Card, tableCards: [Card]) -> Card {
+    func selectCard(gameData: GameData, playerIndex: Int, deckOrHandCard: Card, tableCards: [Card]) -> Card {
         guard tableCards.count >= 2 else {
             return tableCards.last ?? deckOrHandCard
         }
 
-        let player = gameData.players[aiPlayerIndex]
+        let player = gameData.players[playerIndex]
         return tableCards.max { lhs, rhs in
-            capturePairValue(handOrDeck: deckOrHandCard, table: lhs, player: player)
-                < capturePairValue(handOrDeck: deckOrHandCard, table: rhs, player: player)
+            capturePairValue(gameData: gameData, handOrDeck: deckOrHandCard, table: lhs, player: player)
+                < capturePairValue(gameData: gameData, handOrDeck: deckOrHandCard, table: rhs, player: player)
         } ?? tableCards[0]
     }
 
     /// true = 쌍피, false = 열끗
-    func selectGukjin(aiPlayerIndex: Int, card: Card) -> Bool {
-        let player = gameData.players[aiPlayerIndex]
+    func selectGukjin(gameData: GameData, playerIndex: Int) -> Bool {
+        let player = gameData.players[playerIndex]
 
         // 고도리 2장 → 열끗
         if player.godoriCount == 2 {
@@ -118,8 +111,8 @@ final class CursorAIEngine: AIEngine {
     }
 
     /// true = 흔들기
-    func selectWave(aiPlayerIndex: Int, cards: [Card]) -> Bool {
-        let player = gameData.players[aiPlayerIndex]
+    func selectWave(gameData: GameData, playerIndex: Int, cards: [Card]) -> Bool {
+        let player = gameData.players[playerIndex]
         guard cards.count == 3 else { return false }
 
         // 점수가 3점 미만이면 흔들기 배수 효과가 작음
@@ -145,23 +138,25 @@ final class CursorAIEngine: AIEngine {
     }
 
     /// AI가 낼 손패 카드 선택
-    func selectHandCard(aiPlayerIndex: Int, tableCards: [Card]) -> Card {
-        let player = gameData.players[aiPlayerIndex]
+    func selectHandCard(gameData: GameData, playerIndex: Int) -> Card {
+        let player = gameData.players[playerIndex]
         let handCards = player.handCards
         guard !handCards.isEmpty else {
             return Card(month: 0, type: .pi)
         }
 
-        let tableByMonth = tableCardsByMonth(tableCards)
-        let nextDeckMonth = nextNonBonusDeckMonth()
+        let tableByMonth = tableCardsByMonth(gameData.allTableCards)
+        let nextDeckMonth = nextNonBonusDeckMonth(gameData: gameData)
 
         return handCards.max { lhs, rhs in
             handCardPlayValue(
+                gameData: gameData,
                 card: lhs,
                 player: player,
                 tableByMonth: tableByMonth,
                 nextDeckMonth: nextDeckMonth
             ) < handCardPlayValue(
+                gameData: gameData,
                 card: rhs,
                 player: player,
                 tableByMonth: tableByMonth,
@@ -173,13 +168,14 @@ final class CursorAIEngine: AIEngine {
     // MARK: - Hand card evaluation
 
     private func handCardPlayValue(
+        gameData: GameData,
         card: Card,
         player: Player,
         tableByMonth: [Int: [Card]],
         nextDeckMonth: Int?
     ) -> Double {
         if card.month == 0 {
-            return projectedCaptureValue(cards: [card], for: player) + 5
+            return projectedCaptureValue(gameData: gameData, cards: [card], for: player) + 5
         }
 
         let sameInHand = player.handCards.filter { $0.month == card.month }.count
@@ -190,7 +186,7 @@ final class CursorAIEngine: AIEngine {
         case 0:
             // 흔들기·쌓기
             if sameInHand == 3 {
-                value += selectWave(aiPlayerIndex: player.index, cards: player.handCards.filter { $0.month == card.month })
+                value += selectWave(gameData: gameData, playerIndex: player.index, cards: player.handCards.filter { $0.month == card.month })
                     ? 18 : 6
             } else {
                 value -= 2
@@ -204,18 +200,18 @@ final class CursorAIEngine: AIEngine {
             } else {
                 let captured = tableMatches + [card]
                 value += captured.reduce(0.0) { $0 + cardIntrinsicValue($1, for: player) }
-                value += setCompletionBonus(adding: captured, to: player)
+                value += setCompletionBonus(gameData: gameData, adding: captured, to: player)
             }
             if let nextDeckMonth, nextDeckMonth == card.month, sameInHand < 3, player.handCards.count > 1 {
                 value -= 8
             }
         case 2:
-            let bestTable = selectCard(
-                aiPlayerIndex: player.index,
+            let bestTable = selectCard(gameData: gameData,
+                playerIndex: player.index,
                 deckOrHandCard: card,
                 tableCards: tableMatches
             )
-            value += capturePairValue(handOrDeck: card, table: bestTable, player: player)
+            value += capturePairValue(gameData: gameData, handOrDeck: card, table: bestTable, player: player)
         default:
             value += 25
             if player.fuckCardMonths.contains(card.month) {
@@ -228,10 +224,10 @@ final class CursorAIEngine: AIEngine {
 
     // MARK: - Scoring helpers
 
-    private func capturePairValue(handOrDeck: Card, table: Card, player: Player) -> Double {
+    private func capturePairValue(gameData: GameData, handOrDeck: Card, table: Card, player: Player) -> Double {
         let cards = [handOrDeck, table]
         var value = cards.reduce(0.0) { $0 + cardIntrinsicValue($1, for: player) }
-        value += setCompletionBonus(adding: cards, to: player)
+        value += setCompletionBonus(gameData: gameData, adding: cards, to: player)
 
         if isGukjin(table) {
             value += max(marginalPiValue(for: player, asDouble: true), marginalYeolValue(for: player))
@@ -290,19 +286,19 @@ final class CursorAIEngine: AIEngine {
         }
     }
 
-    private func setCompletionBonus(adding cards: [Card], to player: Player) -> Double {
-        projectedCaptureValue(cards: cards, for: player) - Double(player.baseScore)
+    private func setCompletionBonus(gameData: GameData, adding cards: [Card], to player: Player) -> Double {
+        projectedCaptureValue(gameData: gameData, cards: cards, for: player) - Double(player.baseScore)
     }
 
-    private func projectedCaptureValue(cards: [Card], for player: Player) -> Double {
-        Double(projectedBaseScore(for: player, adding: cards))
+    private func projectedCaptureValue(gameData: GameData, cards: [Card], for player: Player) -> Double {
+        Double(projectedBaseScore(gameData: gameData, for: player, adding: cards))
     }
 
-    private func projectedBaseScore(for player: Player, adding cards: [Card]) -> Int {
+    private func projectedBaseScore(gameData: GameData, for player: Player, adding cards: [Card]) -> Int {
         var captured = player.capturedCardTypeGroups
         for card in cards {
             if isGukjin(card) {
-                if selectGukjin(aiPlayerIndex: player.index, card: card) {
+                if selectGukjin(gameData: gameData, playerIndex: player.index) {
                     captured[CardType.pi.rawValue].append(
                         Card(month: card.month, type: .pi, isDoublePi: true)
                     )
@@ -363,11 +359,11 @@ final class CursorAIEngine: AIEngine {
         return 4
     }
 
-    private func handUpside(for player: Player, tableCards: [Card]) -> Double {
+    private func handUpside(gameData: GameData, for player: Player, tableCards: [Card]) -> Double {
         let tableByMonth = tableCardsByMonth(tableCards)
-        let nextDeckMonth = nextNonBonusDeckMonth()
+        let nextDeckMonth = nextNonBonusDeckMonth(gameData: gameData)
         return player.handCards.reduce(0.0) { partial, card in
-            partial + handCardPlayValue(
+            partial + handCardPlayValue(gameData: gameData,
                 card: card,
                 player: player,
                 tableByMonth: tableByMonth,
@@ -384,7 +380,7 @@ final class CursorAIEngine: AIEngine {
 
     // MARK: - Utilities
 
-    private func opponentPlayers(excluding index: Int) -> [Player] {
+    private func opponentPlayers(gameData: GameData, excluding index: Int) -> [Player] {
         gameData.players.enumerated()
             .filter { $0.offset != index }
             .map(\.element)
@@ -394,7 +390,7 @@ final class CursorAIEngine: AIEngine {
         Dictionary(grouping: tableCards.filter { $0.month != 100 }, by: \.month)
     }
 
-    private func nextNonBonusDeckMonth() -> Int? {
+    private func nextNonBonusDeckMonth(gameData: GameData) -> Int? {
         for card in gameData.deckCards.reversed() where card.month != 0 {
             return card.month
         }
