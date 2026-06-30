@@ -49,13 +49,17 @@ public struct WinnerView: View {
                                             .background(.pink)
                                             .clipShape(Circle())
                                     }
-                                    Text("+\(players[0].finalScore)만냥")
-                                        .font(.title3)
-                                        .bold()
-                                        .padding(7)
-                                        .foregroundStyle(.white)
-                                        .background(.blue)
-                                        .clipShape(Capsule())
+                                    HStack(spacing: 10) {
+                                        Text("+\(players[0].finalScore)만냥")
+                                            .font(.title3)
+                                            .bold()
+                                            .padding(7)
+                                            .foregroundStyle(.white)
+                                            .background(.blue)
+                                            .clipShape(Capsule())
+                                        Text("🥳")
+                                            .font(.title)
+                                    }
                                 }
                             }
                             HStack(spacing: 10) {
@@ -109,13 +113,21 @@ public struct WinnerView: View {
                                                 Spacer()
                                             }
                                             HStack(spacing: 5) {
-                                                Text("-\(players[1].finalScore)만냥")
-                                                    .font(.title3)
-                                                    .bold()
-                                                    .padding(5)
-                                                    .foregroundStyle(.white)
-                                                    .background(.blue)
-                                                    .clipShape(Capsule())
+                                                if players[1].finalScore > 0 {
+                                                    Text("\(players[1].finalScore)만냥")
+                                                        .font(.title3)
+                                                        .bold()
+                                                        .padding(5)
+                                                        .foregroundStyle(.white)
+                                                        .background(.red)
+                                                        .clipShape(Capsule())
+                                                    Text("😭")
+                                                        .font(.title)
+                                                }
+                                                else {
+                                                    Text("🤭")
+                                                        .font(.title)
+                                                }
                                                 Spacer()
                                             }
                                         }
@@ -163,14 +175,25 @@ public struct WinnerView: View {
                                                     .clipShape(Circle())
                                                 Spacer()
                                             }
+                                            if players[2].finalScore > 0 {
+                                                
+                                            }
                                             HStack(spacing: 5) {
-                                                Text("-\(players[2].finalScore)만냥")
-                                                    .font(.title3)
-                                                    .bold()
-                                                    .padding(5)
-                                                    .foregroundStyle(.white)
-                                                    .background(.blue)
-                                                    .clipShape(Capsule())
+                                                if players[2].finalScore > 0 {
+                                                    Text("\(players[2].finalScore)만냥")
+                                                        .font(.title3)
+                                                        .bold()
+                                                        .padding(5)
+                                                        .foregroundStyle(.white)
+                                                        .background(.red)
+                                                        .clipShape(Capsule())
+                                                    Text("😭")
+                                                        .font(.title)
+                                                }
+                                                else {
+                                                    Text("🤭")
+                                                        .font(.title)
+                                                }
                                                 Spacer()
                                             }
                                         }

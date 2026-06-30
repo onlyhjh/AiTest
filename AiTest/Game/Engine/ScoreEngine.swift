@@ -25,8 +25,8 @@ class ScoreEngine {
         }
         
         // 독박 확인
-        loser1.finalScore = winner.subtotalScore * (loser1.isGwangBak ? 2 :1) * (loser1.isPiBak ? 2 : 1) * (loser1.isGoBak ? 2 : 1)
-        loser2.finalScore = winner.subtotalScore * (loser2.isGwangBak ? 2 :1) * (loser2.isPiBak ? 2 : 1) * (loser2.isGoBak ? 2 : 1)
+        loser1.finalScore = winner.subtotalScore * (loser1.isGwangBak ? 2 :1) * (loser1.isPiBak ? 2 : 1)
+        loser2.finalScore = winner.subtotalScore * (loser2.isGwangBak ? 2 :1) * (loser2.isPiBak ? 2 : 1)
         
         if let goBakPlayerIndex {
             if goBakPlayerIndex == loser1.index {
